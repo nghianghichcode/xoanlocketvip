@@ -33,6 +33,10 @@ server sẽ truy vấn giao dịch SePay theo đúng tài khoản, số tiền v
 webhook chưa cập nhật. Khi tìm thấy giao dịch, đơn được xác nhận và giới hạn được
 mở lại tự động.
 
+Nếu Railway vừa redeploy làm mất một đơn SQLite đang chờ nhưng trình duyệt vẫn
+giữ mã đơn, endpoint trạng thái có thể khôi phục đơn từ giao dịch SePay khớp
+chính xác. Đây chỉ là lớp cứu hộ; PostgreSQL vẫn cần thiết để chống mất dữ liệu.
+
 ## Tạo webhook trên SePay
 
 Trong My SePay, liên kết đúng tài khoản ngân hàng nhận tiền rồi tạo webhook:

@@ -34,19 +34,25 @@ payment_reconcile_checked_at = {}
 payment_reconcile_next_api_call = 0.0
 
 
+def acquire_reconcile_slot(key):
+    global payment_reconcile_next_api_call
+    now = time.monotonic()
+    with payment_reconcile_lock:
+        last_checked = payment_reconcile_checked_at.get(key, 0)
+        if now - last_checked < 5 or now < payment_reconcile_next_api_call:
+            return False
+        payment_reconcile_checked_at[key] = now
+        payment_reconcile_next_api_call = now + 0.4
+        return True
+
+
 def reconcile_pending_payment(order):
     """Use SePay's transaction API when a webhook was delayed or misconfigured."""
-    global payment_reconcile_next_api_call
     if not SEPAY_API_TOKEN or order['status'] != 'pending':
         return False
 
-    now = time.monotonic()
-    with payment_reconcile_lock:
-        last_checked = payment_reconcile_checked_at.get(order['order_id'], 0)
-        if now - last_checked < 5 or now < payment_reconcile_next_api_call:
-            return False
-        payment_reconcile_checked_at[order['order_id']] = now
-        payment_reconcile_next_api_call = now + 0.4
+    if not acquire_reconcile_slot(order['order_id']):
+        return False
 
     try:
         transaction = payment.find_sepay_transaction(
@@ -71,6 +77,56 @@ def reconcile_pending_payment(order):
     except Exception as exc:
         logger.warning("SePay reconciliation failed for order %s: %s", order['order_id'], exc)
         return False
+
+
+def recover_paid_order(order_id, client_ip):
+    """Recover a paid order after an ephemeral Railway filesystem restart."""
+    if not SEPAY_API_TOKEN:
+        return None
+    if payment.extract_order_id({'code': order_id}, PAYMENT_ORDER_PREFIX) != order_id:
+        return None
+    if not acquire_reconcile_slot(f"recover:{order_id}"):
+        return None
+    try:
+        transaction = payment.find_sepay_transaction(
+            SEPAY_API_URL,
+            SEPAY_API_TOKEN,
+            VIETQR_ACCOUNT_NO,
+            PAYMENT_UNLOCK_AMOUNT,
+            order_id,
+        )
+        if not transaction:
+            return None
+        payment_url = payment.build_vietqr_url(
+            VIETQR_URL_TEMPLATE,
+            VIETQR_ACCOUNT_NO,
+            VIETQR_BANK_CODE,
+            PAYMENT_UNLOCK_AMOUNT,
+            order_id,
+            VIETQR_ACCOUNT_NAME,
+        )
+        try:
+            db.create_payment_order(
+                client_ip,
+                PAYMENT_UNLOCK_AMOUNT,
+                payment_url,
+                order_id=order_id,
+            )
+        except Exception:
+            existing = db.get_payment_order(order_id)
+            if not existing or existing['ip'] != client_ip:
+                return None
+        transaction_id = str(
+            transaction.get('id') or transaction.get('reference_number') or ''
+        ).strip()
+        if not transaction_id:
+            return None
+        db.confirm_payment(order_id, transaction_id, PAYMENT_UNLOCK_AMOUNT, PAYMENT_UNLOCK_DAYS)
+        logger.info("Recovered paid SePay order %s after database restart", order_id)
+        return db.get_payment_order(order_id)
+    except Exception as exc:
+        logger.warning("Unable to recover SePay order %s: %s", order_id, exc)
+        return None
 
 async def inject_worker(uid, token_config):
     """Worker bơm lẻ cho 1 uid, retry tối đa 3 lần nếu server bận"""
@@ -174,6 +230,8 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
 
         order_id = parse_qs(parsed_path.query).get('order_id', [''])[0].strip().upper()
         order = db.get_payment_order(order_id) if order_id else None
+        if not order and order_id:
+            order = recover_paid_order(order_id, self._client_ip())
         if not order or order['ip'] != self._client_ip():
             self._send_json(404, {"success": False, "message": "Khong tim thay don thanh toan."})
             return
