@@ -16,11 +16,18 @@ PAYMENT_UNLOCK_AMOUNT = int(os.environ.get("PAYMENT_UNLOCK_AMOUNT", "20000"))
 PAYMENT_UNLOCK_DAYS = int(os.environ.get("PAYMENT_UNLOCK_DAYS", "7"))
 
 SEPAY_MERCHANT_ID = os.environ.get("SEPAY_MERCHANT_ID", "")
+SEPAY_SECRET_KEY = os.environ.get("SEPAY_SECRET_KEY", "")
+SEPAY_API_TOKEN = os.environ.get("SEPAY_API_TOKEN", "")
+SEPAY_ENV = os.environ.get("SEPAY_ENV", "production")
+SEPAY_IPN_SECRET = os.environ.get("SEPAY_IPN_SECRET", "")
 SEPAY_PAYMENT_URL_TEMPLATE = os.environ.get(
     "SEPAY_PAYMENT_URL_TEMPLATE",
-    "https://sepay.example.com/pay?merchant={merchant_id}&order={order_id}&amount={amount}"
+    os.environ.get(
+        "SEPAY_URL_TEMPLATE",
+        "https://sepay.example.com/pay?merchant={merchant_id}&order={order_id}&amount={amount}"
+    )
 )
-SEPAY_WEBHOOK_SECRET = os.environ.get("SEPAY_WEBHOOK_SECRET", "")
+SEPAY_WEBHOOK_SECRET = os.environ.get("SEPAY_WEBHOOK_SECRET", SEPAY_IPN_SECRET)
 
 # ============================================================
 
