@@ -5,11 +5,22 @@ import os
 import http.server
 import socketserver
 import json
+import uuid
 from urllib.parse import urlparse
 from functools import partial
 from app import database as db
 from app.services import locket, nextdns
-from app.config import TOKEN_SETS, NEXTDNS_KEY, NEXTDNS_INSTALL_URL
+from app.config import (
+    TOKEN_SETS,
+    NEXTDNS_KEY,
+    NEXTDNS_INSTALL_URL,
+    WEEKLY_USAGE_LIMIT,
+    PAYMENT_UNLOCK_AMOUNT,
+    PAYMENT_UNLOCK_DAYS,
+    SEPAY_MERCHANT_ID,
+    SEPAY_PAYMENT_URL_TEMPLATE,
+    SEPAY_WEBHOOK_SECRET,
+)
 from app.bot import run_bot
 
 logger = logging.getLogger(__name__)
@@ -141,7 +152,38 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                 if not uid:
                     self._send_json(400, {"success": False, "message": "Thiếu thông tin UID."})
                     return
-                
+
+                client_ip = self.client_address[0]
+                if not client_ip:
+                    self._send_json(400, {"success": False, "message": "Không xác định được IP người dùng."})
+                    return
+
+                if not db.is_ip_unlocked(client_ip):
+                    week_count = db.get_ip_week_usage(client_ip)
+                    if week_count >= WEEKLY_USAGE_LIMIT:
+                        pending_payment = db.get_pending_payment_by_ip(client_ip)
+                        if pending_payment:
+                            self._send_json(403, {
+                                "success": False,
+                                "message": "Bạn đã dùng đủ 1 lần trong tuần. Vui lòng thanh toán để mở khoá.",
+                                "payment_url": pending_payment['payment_url'],
+                                "order_id": pending_payment['order_id']
+                            })
+                        else:
+                            payment_url = SEPAY_PAYMENT_URL_TEMPLATE.format(
+                                merchant_id=SEPAY_MERCHANT_ID,
+                                order_id=uuid.uuid4().hex,
+                                amount=PAYMENT_UNLOCK_AMOUNT,
+                            )
+                            order_id = db.create_payment_order(client_ip, PAYMENT_UNLOCK_AMOUNT, payment_url)
+                            self._send_json(403, {
+                                "success": False,
+                                "message": "Bạn đã dùng đủ 1 lần trong tuần. Quét mã QR để thanh toán và mở khoá.",
+                                "payment_url": payment_url,
+                                "order_id": order_id
+                            })
+                        return
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 
@@ -150,6 +192,8 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                 success, msg = loop.run_until_complete(locket.inject_gold(uid, token_config))
                 
                 if success:
+                    db.increment_ip_usage(client_ip)
+
                     referrer_id = data.get('referrer_id')
                     if referrer_id:
                         try:
@@ -170,6 +214,36 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                     
             except Exception as e:
                 logger.error(f"Web API Error activate: {e}")
+                self._send_json(500, {"success": False, "message": "Lỗi máy chủ nội bộ."})
+        elif parsed_path.path == '/api/payment-confirm':
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data)
+                order_id = data.get('order_id')
+                paid = data.get('paid', False)
+                signature = data.get('signature')
+
+                if not order_id or not signature:
+                    self._send_json(400, {"success": False, "message": "Thiếu dữ liệu xác nhận."})
+                    return
+
+                expected = SEPAY_WEBHOOK_SECRET
+                if expected and signature != expected:
+                    self._send_json(403, {"success": False, "message": "Chữ ký không hợp lệ."})
+                    return
+
+                order = db.get_payment_order(order_id)
+                if not order:
+                    self._send_json(404, {"success": False, "message": "Không tìm thấy đơn."})
+                    return
+
+                if paid and order['status'] != 'paid':
+                    db.set_payment_paid(order_id)
+                    db.unlock_ip(order['ip'], PAYMENT_UNLOCK_DAYS)
+
+                self._send_json(200, {"success": True, "order_id": order_id, "status": order['status']})
+            except Exception as e:
+                logger.error(f"Web API Error payment-confirm: {e}")
                 self._send_json(500, {"success": False, "message": "Lỗi máy chủ nội bộ."})
         else:
             self.send_error(404, "Not Found")

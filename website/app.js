@@ -44,6 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCancel = document.getElementById('btn-cancel');
     const btnReset = document.getElementById('btn-reset');
 
+    const paymentPrompt = document.getElementById('payment-prompt');
+    const paymentQr = document.getElementById('payment-qr');
+    const paymentLink = document.getElementById('payment-link');
+    const paymentInstruction = document.getElementById('payment-instruction');
+
     const referrerId = new URLSearchParams(window.location.search).get('ref');
     let currentUid = null;
     let textInterval = null;
@@ -183,7 +188,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         dnsLink.setAttribute('data-url', finalUrl);
                         dnsLink.textContent = 'Tải Cấu hình DNS';
                     }
+                    if (paymentPrompt) {
+                        paymentPrompt.style.display = 'none';
+                    }
                     showStep(stepSuccess);
+                } else if (response.status === 403 && data.payment_url) {
+                    if (paymentPrompt) {
+                        paymentPrompt.style.display = 'block';
+                    }
+                    if (paymentLink) {
+                        paymentLink.href = data.payment_url;
+                    }
+                    if (paymentQr) {
+                        paymentQr.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(data.payment_url)}" alt="QR Payment" style="width:220px;height:220px;">`;
+                    }
+                    showStep(stepInput);
+                    errorText.style.display = 'none';
                 } else {
                     showError(data.message || "Lỗi hệ thống. Vui lòng thử lại!");
                 }
