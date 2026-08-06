@@ -170,18 +170,27 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                                 "order_id": pending_payment['order_id']
                             })
                         else:
-                            if not SEPAY_PAYMENT_URL_TEMPLATE:
-                                self._send_json(500, {
-                                    "success": False,
-                                    "message": "Chưa cấu hình SEPAY_PAYMENT_URL_TEMPLATE. Vui lòng thêm URL thanh toán live vào .env.",
-                                })
-                                return
+                            if VIETQR_ACCOUNT_NO and (VIETQR_BANK_CODE or VIETQR_BANK_NAME):
+                                bank_code = VIETQR_BANK_CODE or VIETQR_BANK_NAME.split()[0].upper()
+                                payment_url = VIETQR_URL_TEMPLATE.format(
+                                    account_no=VIETQR_ACCOUNT_NO,
+                                    bank_code=bank_code,
+                                    amount=PAYMENT_UNLOCK_AMOUNT,
+                                )
+                            else:
+                                if not SEPAY_PAYMENT_URL_TEMPLATE:
+                                    self._send_json(500, {
+                                        "success": False,
+                                        "message": "Chưa cấu hình SEPAY_PAYMENT_URL_TEMPLATE hoặc thông tin VIETQR. Vui lòng thêm vào .env.",
+                                    })
+                                    return
 
-                            payment_url = SEPAY_PAYMENT_URL_TEMPLATE.format(
-                                merchant_id=SEPAY_MERCHANT_ID,
-                                order_id=uuid.uuid4().hex,
-                                amount=PAYMENT_UNLOCK_AMOUNT,
-                            )
+                                payment_url = SEPAY_PAYMENT_URL_TEMPLATE.format(
+                                    merchant_id=SEPAY_MERCHANT_ID,
+                                    order_id=uuid.uuid4().hex,
+                                    amount=PAYMENT_UNLOCK_AMOUNT,
+                                )
+
                             order_id = db.create_payment_order(client_ip, PAYMENT_UNLOCK_AMOUNT, payment_url)
                             self._send_json(403, {
                                 "success": False,

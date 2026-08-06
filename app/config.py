@@ -25,6 +25,15 @@ if not SEPAY_PAYMENT_URL_TEMPLATE:
     SEPAY_PAYMENT_URL_TEMPLATE = os.environ.get("SEPAY_URL_TEMPLATE", "").strip()
 SEPAY_WEBHOOK_SECRET = os.environ.get("SEPAY_WEBHOOK_SECRET", SEPAY_IPN_SECRET)
 
+VIETQR_BANK_CODE = os.environ.get("VIETQR_BANK_CODE", "").strip()
+VIETQR_BANK_NAME = os.environ.get("VIETQR_BANK_NAME", "").strip()
+VIETQR_ACCOUNT_NO = os.environ.get("VIETQR_ACCOUNT_NO", "").strip()
+VIETQR_ACCOUNT_NAME = os.environ.get("VIETQR_ACCOUNT_NAME", "").strip()
+VIETQR_URL_TEMPLATE = os.environ.get(
+    "VIETQR_URL_TEMPLATE",
+    "https://vietqr.app/img?acc={account_no}&bank={bank_code}&amount={amount}&des=1&template=compact"
+).strip()
+
 # ============================================================
 
 TOKEN_SETS = [
