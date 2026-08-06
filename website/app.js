@@ -123,8 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const status = await response.json();
                 if (response.ok && status.paid) {
                     stopPaymentPolling();
-                    paymentInstruction.textContent = 'Đã nhận thanh toán. Hệ thống đang tiếp tục kích hoạt...';
-                    setTimeout(() => btnActivate.click(), 600);
+                    paymentInstruction.textContent = 'Thanh toán thành công! Giới hạn đã được mở lại. Hệ thống đang tiếp tục kích hoạt...';
+                    paymentInstruction.style.color = '#15803d';
+                    paymentInstruction.style.fontWeight = '700';
+                    setTimeout(() => btnActivate.click(), 2000);
                 }
             } catch (error) {
                 // Keep polling: a short network interruption should not lose the payment flow.

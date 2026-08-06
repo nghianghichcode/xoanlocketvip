@@ -1,7 +1,10 @@
 import re
 import secrets
 import unicodedata
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urlencode
+
+import requests
 
 
 def normalize_order_prefix(prefix):
@@ -38,9 +41,53 @@ def build_vietqr_url(base_url, account_no, bank_code, amount, order_id, account_
 def extract_order_id(payload, prefix="XOAN"):
     normalized_prefix = normalize_order_prefix(prefix)
     pattern = rf"{re.escape(normalized_prefix)}[A-F0-9]{{12}}"
-    for field in ("code", "content", "description"):
+    for field in ("code", "content", "transaction_content", "description"):
         value = str(payload.get(field) or "").upper()
         match = re.search(pattern, value)
         if match:
             return match.group(0)
     return None
+
+
+def match_sepay_transaction(transactions, order_id, amount, account_no):
+    expected_order = order_id.upper()
+    expected_account = str(account_no).strip()
+    expected_amount = Decimal(str(amount))
+    for transaction in transactions:
+        candidate_order = extract_order_id(transaction, expected_order[:-12])
+        if candidate_order != expected_order:
+            continue
+        candidate_account = str(
+            transaction.get("account_number") or transaction.get("accountNumber") or ""
+        ).strip()
+        if candidate_account and candidate_account != expected_account:
+            continue
+        raw_amount = transaction.get("amount_in", transaction.get("transferAmount"))
+        try:
+            if Decimal(str(raw_amount)) != expected_amount:
+                continue
+        except (InvalidOperation, TypeError):
+            continue
+        return transaction
+    return None
+
+
+def find_sepay_transaction(api_url, api_token, account_no, amount, order_id, timeout=15):
+    if not api_token:
+        return None
+    response = requests.get(
+        api_url,
+        params={
+            "account_number": account_no,
+            "amount_in": int(amount),
+            "limit": 50,
+        },
+        headers={"Authorization": f"Bearer {api_token}"},
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    transactions = payload.get("transactions") or payload.get("data") or []
+    if isinstance(transactions, dict):
+        transactions = transactions.get("transactions") or []
+    return match_sepay_transaction(transactions, order_id, amount, account_no)

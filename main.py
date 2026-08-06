@@ -6,6 +6,7 @@ import http.server
 import socketserver
 import json
 import secrets
+import time
 from urllib.parse import urlparse, parse_qs
 from app import database as db
 from app.services import locket, nextdns, payment
@@ -17,6 +18,8 @@ from app.config import (
     PAYMENT_UNLOCK_AMOUNT,
     PAYMENT_UNLOCK_DAYS,
     SEPAY_WEBHOOK_SECRET,
+    SEPAY_API_TOKEN,
+    SEPAY_API_URL,
     VIETQR_BANK_CODE,
     VIETQR_ACCOUNT_NO,
     VIETQR_ACCOUNT_NAME,
@@ -26,6 +29,48 @@ from app.config import (
 from app.bot import run_bot
 
 logger = logging.getLogger(__name__)
+payment_reconcile_lock = threading.Lock()
+payment_reconcile_checked_at = {}
+payment_reconcile_next_api_call = 0.0
+
+
+def reconcile_pending_payment(order):
+    """Use SePay's transaction API when a webhook was delayed or misconfigured."""
+    global payment_reconcile_next_api_call
+    if not SEPAY_API_TOKEN or order['status'] != 'pending':
+        return False
+
+    now = time.monotonic()
+    with payment_reconcile_lock:
+        last_checked = payment_reconcile_checked_at.get(order['order_id'], 0)
+        if now - last_checked < 5 or now < payment_reconcile_next_api_call:
+            return False
+        payment_reconcile_checked_at[order['order_id']] = now
+        payment_reconcile_next_api_call = now + 0.4
+
+    try:
+        transaction = payment.find_sepay_transaction(
+            SEPAY_API_URL,
+            SEPAY_API_TOKEN,
+            VIETQR_ACCOUNT_NO,
+            order['amount'],
+            order['order_id'],
+        )
+        if not transaction:
+            return False
+        transaction_id = str(
+            transaction.get('id') or transaction.get('reference_number') or ''
+        ).strip()
+        if not transaction_id:
+            return False
+        result = db.confirm_payment(
+            order['order_id'], transaction_id, order['amount'], PAYMENT_UNLOCK_DAYS
+        )
+        logger.info("SePay reconciliation for order %s: %s", order['order_id'], result)
+        return result in ('paid', 'already_paid')
+    except Exception as exc:
+        logger.warning("SePay reconciliation failed for order %s: %s", order['order_id'], exc)
+        return False
 
 async def inject_worker(uid, token_config):
     """Worker bơm lẻ cho 1 uid, retry tối đa 3 lần nếu server bận"""
@@ -132,11 +177,18 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
         if not order or order['ip'] != self._client_ip():
             self._send_json(404, {"success": False, "message": "Khong tim thay don thanh toan."})
             return
+        if order['status'] == 'pending' and reconcile_pending_payment(order):
+            order = db.get_payment_order(order_id)
         self._send_json(200, {
             "success": True,
             "order_id": order_id,
             "status": order['status'],
             "paid": order['status'] == 'paid',
+            "message": (
+                "Thanh toán thành công. Giới hạn đã được mở lại."
+                if order['status'] == 'paid'
+                else "Đang chờ SePay xác nhận giao dịch."
+            ),
         })
 
     def do_POST(self):

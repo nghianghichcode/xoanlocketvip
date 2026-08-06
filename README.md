@@ -14,6 +14,7 @@ VIETQR_BANK_BIN=970436
 VIETQR_ACCOUNT_NO=SO_TAI_KHOAN_NHAN
 VIETQR_ACCOUNT_NAME=TEN CHU TAI KHOAN
 SEPAY_WEBHOOK_API_KEY=CHUOI_BI_MAT_DAI_NGAU_NHIEN
+SEPAY_API_TOKEN=API_TOKEN_TAO_TAI_SEPAY
 PAYMENT_ORDER_PREFIX=XOAN
 PAYMENT_UNLOCK_AMOUNT=20000
 PAYMENT_UNLOCK_DAYS=7
@@ -26,6 +27,11 @@ trợ, nhưng nếu đã có `VIETQR_BANK_BIN` thì không cần thêm.
 
 Nên thêm Railway Postgres và liên kết nó với service để Railway tự cấp
 `DATABASE_URL`. Nếu chỉ dùng SQLite, đơn đang chờ có thể mất khi deploy/restart.
+
+`SEPAY_API_TOKEN` là cơ chế đối soát dự phòng: trong lúc trang thanh toán còn mở,
+server sẽ truy vấn giao dịch SePay theo đúng tài khoản, số tiền và mã đơn nếu
+webhook chưa cập nhật. Khi tìm thấy giao dịch, đơn được xác nhận và giới hạn được
+mở lại tự động.
 
 ## Tạo webhook trên SePay
 

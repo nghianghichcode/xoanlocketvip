@@ -1,6 +1,11 @@
 from urllib.parse import parse_qs, urlparse
 
-from app.services.payment import build_vietqr_url, extract_order_id, generate_order_id
+from app.services.payment import (
+    build_vietqr_url,
+    extract_order_id,
+    generate_order_id,
+    match_sepay_transaction,
+)
 
 
 def test_order_id_is_bank_safe_and_unique():
@@ -34,6 +39,19 @@ def test_extract_order_from_official_sepay_fields():
         "description": "incoming transfer",
     }
     assert extract_order_id(payload, "XOAN") == "XOAN0123456789AB"
+
+
+def test_match_transaction_api_payload():
+    transactions = [{
+        "id": "123",
+        "account_number": "0123456789",
+        "amount_in": "20000.00",
+        "transaction_content": "XOAN0123456789AB chuyen tien",
+    }]
+    match = match_sepay_transaction(
+        transactions, "XOAN0123456789AB", 20000, "0123456789"
+    )
+    assert match["id"] == "123"
 
 
 def test_database_confirms_only_exact_amount_once(tmp_path):
