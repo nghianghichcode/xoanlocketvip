@@ -188,9 +188,14 @@
                     </p>
                     <div id="payment-prompt" style="display:none; margin-top:12px; padding:14px; border:1px solid #f0c050; background:#fff8e6; border-radius:12px;">
                         <p style="margin:0 0 8px 0; font-weight:700; color:#7a4b00;">Bạn đã dùng đủ 1 lần trong tuần.</p>
-                        <p style="margin:0 0 12px 0; color:#4a3b1f;">Quét QR hoặc nhấn nút bên dưới để thanh toán <strong>20.000đ</strong> và mở khoá ngay.</p>
+                        <p style="margin:0 0 12px 0; color:#4a3b1f;">Quét QR và chuyển khoản đúng thông tin dưới đây để mở khoá ngay.</p>
                         <div id="payment-qr" style="margin-bottom:12px;"></div>
-                        <a href="#" id="payment-link" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Mở link thanh toán</a>
+                        <div style="margin:0 0 12px;line-height:1.7;color:#4a3b1f;">
+                            <div>Số tiền: <strong id="payment-amount">...</strong></div>
+                            <div>Nội dung/Mã đơn: <strong id="payment-order-id" style="user-select:all;">...</strong></div>
+                            <div>Tài khoản nhận: <strong id="payment-account">...</strong></div>
+                        </div>
+                        <a href="#" id="payment-link" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Mở ảnh QR</a>
                         <p id="payment-instruction" style="margin:10px 0 0 0; font-size:0.9rem; color:#5b4a2f;">Sau khi thanh toán, hệ thống sẽ tự động mở khoá IP.</p>
                     </div>
                     <p class="error-text" id="error-message">Không tìm thấy tài khoản. Vui lòng thử lại!</p>

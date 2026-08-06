@@ -64,6 +64,12 @@ def init_db():
                         expires_at TEXT,
                         payment_url TEXT
                     )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS payment_transactions (
+                        transaction_id TEXT PRIMARY KEY,
+                        order_id TEXT NOT NULL,
+                        received_amount INTEGER NOT NULL,
+                        created_at TEXT NOT NULL
+                    )""")
         c.execute("""CREATE TABLE IF NOT EXISTS user_settings (
                         user_id BIGINT PRIMARY KEY,
                         language TEXT
@@ -254,6 +260,69 @@ def set_payment_paid(order_id):
             (paid_at, order_id),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def confirm_payment(order_id, transaction_id, received_amount, unlock_days=7):
+    """Atomically record a SePay transaction, pay the order and unlock its IP."""
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        if not USING_POSTGRES:
+            c.execute("BEGIN IMMEDIATE")
+
+        select_order = "SELECT ip, amount, status, expires_at FROM payment_orders WHERE order_id = ?"
+        if USING_POSTGRES:
+            select_order += " FOR UPDATE"
+        c.execute(_sql(select_order), (order_id,))
+        row = c.fetchone()
+        if not row:
+            conn.rollback()
+            return "not_found"
+
+        ip, expected_amount, status, expires_at = row
+        if status == "paid":
+            conn.rollback()
+            return "already_paid"
+        if expires_at and datetime.now() >= datetime.fromisoformat(str(expires_at)):
+            conn.rollback()
+            return "expired"
+        if int(received_amount) != int(expected_amount):
+            conn.rollback()
+            return "amount_mismatch"
+
+        c.execute(
+            _sql("SELECT 1 FROM payment_transactions WHERE transaction_id = ?"),
+            (transaction_id,),
+        )
+        if c.fetchone():
+            conn.rollback()
+            return "duplicate"
+
+        now = datetime.now().isoformat()
+        unlocked_until = (datetime.now() + timedelta(days=unlock_days)).isoformat()
+        c.execute(
+            _sql("""INSERT INTO payment_transactions
+                     (transaction_id, order_id, received_amount, created_at)
+                     VALUES (?, ?, ?, ?)"""),
+            (transaction_id, order_id, int(received_amount), now),
+        )
+        c.execute(
+            _sql("""UPDATE payment_orders SET status = 'paid', paid_at = ?
+                     WHERE order_id = ? AND status = 'pending'"""),
+            (now, order_id),
+        )
+        c.execute(
+            _sql("""INSERT INTO ip_unlocks (ip, unlocked_until) VALUES (?, ?)
+                     ON CONFLICT (ip) DO UPDATE SET unlocked_until = excluded.unlocked_until"""),
+            (ip, unlocked_until),
+        )
+        conn.commit()
+        return "paid"
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 

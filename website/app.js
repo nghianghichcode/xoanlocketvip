@@ -48,10 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentQr = document.getElementById('payment-qr');
     const paymentLink = document.getElementById('payment-link');
     const paymentInstruction = document.getElementById('payment-instruction');
+    const paymentOrderId = document.getElementById('payment-order-id');
+    const paymentAccount = document.getElementById('payment-account');
+    const paymentAmount = document.getElementById('payment-amount');
 
     const referrerId = new URLSearchParams(window.location.search).get('ref');
     let currentUid = null;
     let textInterval = null;
+    let paymentPollTimer = null;
 
     function showStep(stepElement) {
         document.querySelectorAll('.widget-step').forEach(el => el.classList.remove('active'));
@@ -96,6 +100,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         throw lastError;
+    }
+
+    function stopPaymentPolling() {
+        if (paymentPollTimer) {
+            clearInterval(paymentPollTimer);
+            paymentPollTimer = null;
+        }
+    }
+
+    function startPaymentPolling(orderId) {
+        stopPaymentPolling();
+        let checking = false;
+        paymentPollTimer = setInterval(async () => {
+            if (checking) return;
+            checking = true;
+            try {
+                const response = await fetchApi(`/api/payment-status?order_id=${encodeURIComponent(orderId)}`, {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
+                const status = await response.json();
+                if (response.ok && status.paid) {
+                    stopPaymentPolling();
+                    paymentInstruction.textContent = 'Đã nhận thanh toán. Hệ thống đang tiếp tục kích hoạt...';
+                    setTimeout(() => btnActivate.click(), 600);
+                }
+            } catch (error) {
+                // Keep polling: a short network interruption should not lose the payment flow.
+            } finally {
+                checking = false;
+            }
+        }, 3000);
     }
 
     form.addEventListener('submit', async (e) => {
@@ -180,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(textInterval);
 
                 if (response.ok && data.success) {
+                    stopPaymentPolling();
                     successUsername.textContent = confirmUsername.textContent;
                     const dnsLink = document.getElementById('dns-link');
                     if (dnsLink) {
@@ -200,8 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         paymentLink.href = data.payment_url;
                     }
                     if (paymentQr) {
-                        paymentQr.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(data.payment_url)}" alt="QR Payment" style="width:220px;height:220px;">`;
+                        paymentQr.replaceChildren();
+                        const qrImage = document.createElement('img');
+                        qrImage.src = data.payment_qr_url || data.payment_url;
+                        qrImage.alt = `QR thanh toán đơn ${data.order_id}`;
+                        qrImage.style.cssText = 'width:280px;max-width:100%;height:auto;';
+                        paymentQr.appendChild(qrImage);
                     }
+                    if (paymentOrderId) paymentOrderId.textContent = data.order_id;
+                    if (paymentAccount) paymentAccount.textContent = `${data.bank_code} - ${data.account_no}${data.account_name ? ` - ${data.account_name}` : ''}`;
+                    if (paymentAmount) paymentAmount.textContent = `${Number(data.amount || 0).toLocaleString('vi-VN')}đ`;
+                    paymentInstruction.textContent = 'Đang chờ ngân hàng xác nhận. Vui lòng giữ nguyên số tiền và nội dung chuyển khoản.';
+                    startPaymentPolling(data.order_id);
                     showStep(stepInput);
                     errorText.style.display = 'none';
                 } else {
@@ -216,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnCancel) {
         btnCancel.addEventListener('click', () => {
+            stopPaymentPolling();
             input.value = '';
             currentUid = null;
             showStep(stepInput);
@@ -223,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     btnReset.addEventListener('click', () => {
+        stopPaymentPolling();
         input.value = '';
         currentUid = null;
         errorText.style.display = 'none';
