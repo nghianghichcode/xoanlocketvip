@@ -170,6 +170,13 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                                 "order_id": pending_payment['order_id']
                             })
                         else:
+                            if not SEPAY_PAYMENT_URL_TEMPLATE:
+                                self._send_json(500, {
+                                    "success": False,
+                                    "message": "Chưa cấu hình SEPAY_PAYMENT_URL_TEMPLATE. Vui lòng thêm URL thanh toán live vào .env.",
+                                })
+                                return
+
                             payment_url = SEPAY_PAYMENT_URL_TEMPLATE.format(
                                 merchant_id=SEPAY_MERCHANT_ID,
                                 order_id=uuid.uuid4().hex,

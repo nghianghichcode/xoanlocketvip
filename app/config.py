@@ -20,13 +20,9 @@ SEPAY_SECRET_KEY = os.environ.get("SEPAY_SECRET_KEY", "")
 SEPAY_API_TOKEN = os.environ.get("SEPAY_API_TOKEN", "")
 SEPAY_ENV = os.environ.get("SEPAY_ENV", "production")
 SEPAY_IPN_SECRET = os.environ.get("SEPAY_IPN_SECRET", "")
-SEPAY_PAYMENT_URL_TEMPLATE = os.environ.get(
-    "SEPAY_PAYMENT_URL_TEMPLATE",
-    os.environ.get(
-        "SEPAY_URL_TEMPLATE",
-        "https://sepay.example.com/pay?merchant={merchant_id}&order={order_id}&amount={amount}"
-    )
-)
+SEPAY_PAYMENT_URL_TEMPLATE = os.environ.get("SEPAY_PAYMENT_URL_TEMPLATE", "").strip()
+if not SEPAY_PAYMENT_URL_TEMPLATE:
+    SEPAY_PAYMENT_URL_TEMPLATE = os.environ.get("SEPAY_URL_TEMPLATE", "").strip()
 SEPAY_WEBHOOK_SECRET = os.environ.get("SEPAY_WEBHOOK_SECRET", SEPAY_IPN_SECRET)
 
 # ============================================================
