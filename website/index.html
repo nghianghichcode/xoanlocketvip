@@ -181,10 +181,10 @@
                             <span>&rarr;</span></button>
                     </form>
                     <p style="margin-top: 10px; font-size: 0.95rem; color: #6b7280;">
-                        Giới hạn hiện tại: mỗi người dùng chỉ được dùng tối đa 2 lần mỗi ngày.
+                        Mỗi thiết bị có 1 lượt miễn phí mỗi tuần. Sau đó, chia sẻ thành công hoặc thanh toán để mở 3 lượt dùng trong 7 ngày.
                     </p>
                     <p style="margin-top: 6px; font-size: 0.92rem; color: #8b5e00;">
-                        Chia sẻ link có tham số <strong>?ref=ID</strong> để người giới thiệu nhận thêm 1 lượt khi người dùng thật kích hoạt thành công.
+                        Chia sẻ link giới thiệu; khi một thiết bị khác kích hoạt thành công, thiết bị của bạn được mở 3 lượt trong 7 ngày.
                     </p>
                     <div id="payment-prompt" style="display:none; margin-top:12px; padding:14px; border:1px solid #f0c050; background:#fff8e6; border-radius:12px;">
                         <p style="margin:0 0 8px 0; font-weight:700; color:#7a4b00;">Bạn đã dùng đủ 1 lần trong tuần.</p>
@@ -196,7 +196,8 @@
                             <div>Tài khoản nhận: <strong id="payment-account">...</strong></div>
                         </div>
                         <a href="#" id="payment-link" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Mở ảnh QR</a>
-                        <p id="payment-instruction" style="margin:10px 0 0 0; font-size:0.9rem; color:#5b4a2f;">Sau khi thanh toán, hệ thống sẽ tự động mở khoá IP.</p>
+                        <button type="button" id="share-unlock-button" class="btn btn-outline" style="display:none;margin-left:8px;">Chia sẻ để mở 3 lượt</button>
+                        <p id="payment-instruction" style="margin:10px 0 0 0; font-size:0.9rem; color:#5b4a2f;">Sau khi thanh toán hoặc giới thiệu thành công, hệ thống tự mở 3 lượt cho thiết bị.</p>
                     </div>
                     <p class="error-text" id="error-message">Không tìm thấy tài khoản. Vui lòng thử lại!</p>
                 </div>

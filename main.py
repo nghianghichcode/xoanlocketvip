@@ -7,6 +7,7 @@ import socketserver
 import json
 import secrets
 import time
+import re
 from urllib.parse import urlparse, parse_qs
 from app import database as db
 from app.services import locket, nextdns, payment
@@ -17,6 +18,7 @@ from app.config import (
     WEEKLY_USAGE_LIMIT,
     PAYMENT_UNLOCK_AMOUNT,
     PAYMENT_UNLOCK_DAYS,
+    PAYMENT_UNLOCK_USES,
     SEPAY_WEBHOOK_SECRET,
     SEPAY_API_TOKEN,
     SEPAY_API_URL,
@@ -70,7 +72,8 @@ def reconcile_pending_payment(order):
         if not transaction_id:
             return False
         result = db.confirm_payment(
-            order['order_id'], transaction_id, order['amount'], PAYMENT_UNLOCK_DAYS
+            order['order_id'], transaction_id, order['amount'], PAYMENT_UNLOCK_DAYS,
+            PAYMENT_UNLOCK_USES,
         )
         logger.info("SePay reconciliation for order %s: %s", order['order_id'], result)
         return result in ('paid', 'already_paid')
@@ -79,7 +82,7 @@ def reconcile_pending_payment(order):
         return False
 
 
-def recover_paid_order(order_id, client_ip):
+def recover_paid_order(order_id, client_ip, device_key):
     """Recover a paid order after an ephemeral Railway filesystem restart."""
     if not SEPAY_API_TOKEN:
         return None
@@ -111,17 +114,23 @@ def recover_paid_order(order_id, client_ip):
                 PAYMENT_UNLOCK_AMOUNT,
                 payment_url,
                 order_id=order_id,
+                device_key=device_key,
             )
         except Exception:
             existing = db.get_payment_order(order_id)
-            if not existing or existing['ip'] != client_ip:
+            if not existing or (
+                existing.get('device_key') and existing['device_key'] != device_key
+            ):
                 return None
         transaction_id = str(
             transaction.get('id') or transaction.get('reference_number') or ''
         ).strip()
         if not transaction_id:
             return None
-        db.confirm_payment(order_id, transaction_id, PAYMENT_UNLOCK_AMOUNT, PAYMENT_UNLOCK_DAYS)
+        db.confirm_payment(
+            order_id, transaction_id, PAYMENT_UNLOCK_AMOUNT,
+            PAYMENT_UNLOCK_DAYS, PAYMENT_UNLOCK_USES,
+        )
         logger.info("Recovered paid SePay order %s after database restart", order_id)
         return db.get_payment_order(order_id)
     except Exception as exc:
@@ -223,28 +232,52 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
             return forwarded.split(',')[0].strip()
         return self.client_address[0]
 
+    @staticmethod
+    def _valid_device_key(value):
+        value = str(value or '').strip().lower()
+        return value if re.fullmatch(r"[a-f0-9]{64}", value) else None
+
     def do_GET(self):
         parsed_path = urlparse(self.path)
         if parsed_path.path != '/api/payment-status':
             return super().do_GET()
 
         order_id = parse_qs(parsed_path.query).get('order_id', [''])[0].strip().upper()
+        device_key = self._valid_device_key(
+            parse_qs(parsed_path.query).get('device_id', [''])[0]
+        )
+        if not device_key:
+            self._send_json(400, {"success": False, "message": "Thiếu mã nhận diện thiết bị."})
+            return
         order = db.get_payment_order(order_id) if order_id else None
         if not order and order_id:
-            order = recover_paid_order(order_id, self._client_ip())
-        if not order or order['ip'] != self._client_ip():
+            order = recover_paid_order(order_id, self._client_ip(), device_key)
+        belongs_to_device = order and (
+            order.get('device_key') == device_key
+            or (not order.get('device_key') and order['ip'] == self._client_ip())
+        )
+        if not belongs_to_device:
             self._send_json(404, {"success": False, "message": "Khong tim thay don thanh toan."})
             return
         if order['status'] == 'pending' and reconcile_pending_payment(order):
             order = db.get_payment_order(order_id)
+        if order['status'] == 'paid' and not order.get('device_key'):
+            if db.attach_paid_order_to_device(
+                order_id, device_key, PAYMENT_UNLOCK_DAYS, PAYMENT_UNLOCK_USES
+            ):
+                order = db.get_payment_order(order_id)
+        device_access = db.get_device_access(device_key, WEEKLY_USAGE_LIMIT)
+        unlocked = order['status'] == 'paid' or device_access['mode'] == 'unlocked'
         self._send_json(200, {
             "success": True,
             "order_id": order_id,
             "status": order['status'],
             "paid": order['status'] == 'paid',
+            "unlocked": unlocked,
+            "remaining_uses": device_access['remaining'],
             "message": (
-                "Thanh toán thành công. Giới hạn đã được mở lại."
-                if order['status'] == 'paid'
+                "Đã mở khóa 3 lượt sử dụng trong 7 ngày."
+                if unlocked
                 else "Đang chờ SePay xác nhận giao dịch."
             ),
         })
@@ -284,8 +317,12 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 data = json.loads(post_data)
                 uid = data.get('uid', '').strip()
+                device_key = self._valid_device_key(data.get('device_id'))
                 if not uid:
                     self._send_json(400, {"success": False, "message": "Thiếu thông tin UID."})
+                    return
+                if not device_key:
+                    self._send_json(400, {"success": False, "message": "Không nhận diện được thiết bị."})
                     return
 
                 client_ip = self._client_ip()
@@ -293,66 +330,71 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json(400, {"success": False, "message": "Không xác định được IP người dùng."})
                     return
 
-                if not db.is_ip_unlocked(client_ip):
-                    week_count = db.get_ip_week_usage(client_ip)
-                    if week_count >= WEEKLY_USAGE_LIMIT:
-                        pending_payment = db.get_pending_payment_by_ip(client_ip)
-                        valid_pending = (
-                            pending_payment
-                            and pending_payment['order_id'].upper().startswith(
-                                payment.normalize_order_prefix(PAYMENT_ORDER_PREFIX)
-                            )
-                            and 'sepay.example.com' not in (pending_payment['payment_url'] or '')
+                access = db.get_device_access(device_key, WEEKLY_USAGE_LIMIT)
+                if not access['allowed']:
+                    pending_payment = db.get_pending_payment_by_device(device_key)
+                    referral_code = db.get_or_create_device_referral(device_key)
+                    valid_pending = (
+                        pending_payment
+                        and pending_payment['order_id'].upper().startswith(
+                            payment.normalize_order_prefix(PAYMENT_ORDER_PREFIX)
                         )
-                        if valid_pending:
-                            self._send_json(403, {
-                                "success": False,
-                                "message": "Bạn đã dùng đủ 1 lần trong tuần. Vui lòng thanh toán để mở khoá.",
-                                "payment_url": pending_payment['payment_url'],
-                                "payment_qr_url": pending_payment['payment_url'],
-                                "order_id": pending_payment['order_id'],
-                                "amount": pending_payment['amount'],
-                                "account_no": VIETQR_ACCOUNT_NO,
-                                "account_name": VIETQR_ACCOUNT_NAME,
-                                "bank_code": VIETQR_BANK_CODE,
-                            })
-                        else:
-                            order_id = payment.generate_order_id(PAYMENT_ORDER_PREFIX)
-                            try:
-                                payment_url = payment.build_vietqr_url(
-                                    VIETQR_URL_TEMPLATE,
-                                    VIETQR_ACCOUNT_NO,
-                                    VIETQR_BANK_CODE,
-                                    PAYMENT_UNLOCK_AMOUNT,
-                                    order_id,
-                                    VIETQR_ACCOUNT_NAME,
-                                )
-                            except ValueError as exc:
-                                logger.error("Payment configuration error: %s", exc)
-                                self._send_json(500, {
-                                    "success": False,
-                                    "message": "Chưa cấu hình VIETQR_ACCOUNT_NO và VIETQR_BANK_CODE/VIETQR_BANK_BIN.",
-                                })
-                                return
-
-                            db.create_payment_order(
-                                client_ip,
+                        and 'sepay.example.com' not in (pending_payment['payment_url'] or '')
+                    )
+                    if valid_pending:
+                        self._send_json(403, {
+                            "success": False,
+                            "message": "Đã dùng lượt miễn phí. Hãy chia sẻ hoặc thanh toán để mở 3 lượt/7 ngày.",
+                            "payment_url": pending_payment['payment_url'],
+                            "payment_qr_url": pending_payment['payment_url'],
+                            "order_id": pending_payment['order_id'],
+                            "amount": pending_payment['amount'],
+                            "account_no": VIETQR_ACCOUNT_NO,
+                            "account_name": VIETQR_ACCOUNT_NAME,
+                            "bank_code": VIETQR_BANK_CODE,
+                            "referral_code": referral_code,
+                            "unlock_uses": PAYMENT_UNLOCK_USES,
+                        })
+                    else:
+                        order_id = payment.generate_order_id(PAYMENT_ORDER_PREFIX)
+                        try:
+                            payment_url = payment.build_vietqr_url(
+                                VIETQR_URL_TEMPLATE,
+                                VIETQR_ACCOUNT_NO,
+                                VIETQR_BANK_CODE,
                                 PAYMENT_UNLOCK_AMOUNT,
-                                payment_url,
-                                order_id=order_id,
+                                order_id,
+                                VIETQR_ACCOUNT_NAME,
                             )
-                            self._send_json(403, {
+                        except ValueError as exc:
+                            logger.error("Payment configuration error: %s", exc)
+                            self._send_json(500, {
                                 "success": False,
-                                "message": "Bạn đã dùng đủ 1 lần trong tuần. Quét mã QR để thanh toán và mở khoá.",
-                                "payment_url": payment_url,
-                                "payment_qr_url": payment_url,
-                                "order_id": order_id,
-                                "amount": PAYMENT_UNLOCK_AMOUNT,
-                                "account_no": VIETQR_ACCOUNT_NO,
-                                "account_name": VIETQR_ACCOUNT_NAME,
-                                "bank_code": VIETQR_BANK_CODE,
+                                "message": "Chưa cấu hình VIETQR_ACCOUNT_NO và VIETQR_BANK_CODE/VIETQR_BANK_BIN.",
                             })
-                        return
+                            return
+
+                        db.create_payment_order(
+                            client_ip,
+                            PAYMENT_UNLOCK_AMOUNT,
+                            payment_url,
+                            order_id=order_id,
+                            device_key=device_key,
+                        )
+                        self._send_json(403, {
+                            "success": False,
+                            "message": "Đã dùng lượt miễn phí. Hãy chia sẻ hoặc quét QR để mở 3 lượt/7 ngày.",
+                            "payment_url": payment_url,
+                            "payment_qr_url": payment_url,
+                            "order_id": order_id,
+                            "amount": PAYMENT_UNLOCK_AMOUNT,
+                            "account_no": VIETQR_ACCOUNT_NO,
+                            "account_name": VIETQR_ACCOUNT_NAME,
+                            "bank_code": VIETQR_BANK_CODE,
+                            "referral_code": referral_code,
+                            "unlock_uses": PAYMENT_UNLOCK_USES,
+                        })
+                    return
 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
@@ -362,23 +404,29 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                 success, msg = loop.run_until_complete(locket.inject_gold(uid, token_config))
                 
                 if success:
-                    db.increment_ip_usage(client_ip)
-
-                    referrer_id = data.get('referrer_id')
-                    if referrer_id:
-                        try:
-                            referrer_id = int(referrer_id)
-                        except (TypeError, ValueError):
-                            referrer_id = None
-                        if referrer_id and referrer_id != uid:
-                            db.grant_referral_bonus(referrer_id)
+                    usage_mode = db.record_device_activation(device_key, WEEKLY_USAGE_LIMIT)
+                    referrer_code = str(data.get('referrer_code') or '').strip().upper()
+                    if referrer_code:
+                        db.claim_device_referral(
+                            referrer_code,
+                            device_key,
+                            PAYMENT_UNLOCK_DAYS,
+                            PAYMENT_UNLOCK_USES,
+                        )
 
                     _, dns_url = loop.run_until_complete(
                         nextdns.create_profile(NEXTDNS_KEY, None, install_url=NEXTDNS_INSTALL_URL)
                     )
                     final_dns_url = dns_url or NEXTDNS_INSTALL_URL
 
-                    self._send_json(200, {"success": True, "uid": uid, "dns_url": final_dns_url})
+                    remaining = db.get_device_access(device_key, WEEKLY_USAGE_LIMIT)
+                    self._send_json(200, {
+                        "success": True,
+                        "uid": uid,
+                        "dns_url": final_dns_url,
+                        "usage_mode": usage_mode,
+                        "remaining_uses": remaining['remaining'],
+                    })
                 else:
                     self._send_json(400, {"success": False, "message": msg})
                     
@@ -420,6 +468,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                     transaction_id,
                     received_amount,
                     PAYMENT_UNLOCK_DAYS,
+                    PAYMENT_UNLOCK_USES,
                 )
                 self._send_json(200, {
                     "success": True,

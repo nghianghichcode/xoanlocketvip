@@ -57,6 +57,7 @@ def init_db():
         c.execute("""CREATE TABLE IF NOT EXISTS payment_orders (
                         order_id TEXT PRIMARY KEY,
                         ip TEXT,
+                        device_key TEXT,
                         amount INTEGER,
                         status TEXT,
                         created_at TEXT,
@@ -64,11 +65,40 @@ def init_db():
                         expires_at TEXT,
                         payment_url TEXT
                     )""")
+        if USING_POSTGRES:
+            c.execute("ALTER TABLE payment_orders ADD COLUMN IF NOT EXISTS device_key TEXT")
+        else:
+            c.execute("PRAGMA table_info(payment_orders)")
+            if "device_key" not in {row[1] for row in c.fetchall()}:
+                c.execute("ALTER TABLE payment_orders ADD COLUMN device_key TEXT")
         c.execute("""CREATE TABLE IF NOT EXISTS payment_transactions (
                         transaction_id TEXT PRIMARY KEY,
                         order_id TEXT NOT NULL,
                         received_amount INTEGER NOT NULL,
                         created_at TEXT NOT NULL
+                    )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS device_week_usage (
+                        device_key TEXT,
+                        week_start TEXT,
+                        count INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (device_key, week_start)
+                    )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS device_unlocks (
+                        device_key TEXT PRIMARY KEY,
+                        unlocked_until TEXT NOT NULL,
+                        allowance INTEGER NOT NULL,
+                        used INTEGER NOT NULL DEFAULT 0,
+                        source TEXT
+                    )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS device_referrals (
+                        referral_code TEXT PRIMARY KEY,
+                        device_key TEXT UNIQUE NOT NULL
+                    )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS device_referral_claims (
+                        referral_code TEXT,
+                        referred_device TEXT,
+                        claimed_at TEXT NOT NULL,
+                        PRIMARY KEY (referral_code, referred_device)
                     )""")
         c.execute("""CREATE TABLE IF NOT EXISTS user_settings (
                         user_id BIGINT PRIMARY KEY,
@@ -140,6 +170,185 @@ def increment_ip_usage(ip):
         conn.close()
 
 
+def get_device_week_usage(device_key):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        c.execute(
+            _sql("SELECT count FROM device_week_usage WHERE device_key = ? AND week_start = ?"),
+            (device_key, get_week_start()),
+        )
+        row = c.fetchone()
+        return row[0] if row else 0
+    finally:
+        conn.close()
+
+
+def get_device_access(device_key, free_limit=1):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        c.execute(
+            _sql("SELECT unlocked_until, allowance, used, source FROM device_unlocks WHERE device_key = ?"),
+            (device_key,),
+        )
+        row = c.fetchone()
+        if row:
+            unlocked_until = datetime.fromisoformat(str(row[0]))
+            if datetime.now() < unlocked_until and int(row[2]) < int(row[1]):
+                return {
+                    "allowed": True,
+                    "mode": "unlocked",
+                    "remaining": int(row[1]) - int(row[2]),
+                    "unlocked_until": str(row[0]),
+                    "source": row[3],
+                }
+        free_used = get_device_week_usage(device_key)
+        return {
+            "allowed": free_used < free_limit,
+            "mode": "free",
+            "remaining": max(0, free_limit - free_used),
+            "unlocked_until": None,
+            "source": None,
+        }
+    finally:
+        conn.close()
+
+
+def record_device_activation(device_key, free_limit=1):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        if not USING_POSTGRES:
+            c.execute("BEGIN IMMEDIATE")
+        select_unlock = """SELECT unlocked_until, allowance, used
+                           FROM device_unlocks WHERE device_key = ?"""
+        if USING_POSTGRES:
+            select_unlock += " FOR UPDATE"
+        c.execute(_sql(select_unlock), (device_key,))
+        row = c.fetchone()
+        if row and datetime.now() < datetime.fromisoformat(str(row[0])) and int(row[2]) < int(row[1]):
+            c.execute(
+                _sql("UPDATE device_unlocks SET used = used + 1 WHERE device_key = ?"),
+                (device_key,),
+            )
+            conn.commit()
+            return "unlocked"
+
+        week_start = get_week_start()
+        c.execute(
+            _sql("SELECT count FROM device_week_usage WHERE device_key = ? AND week_start = ?"),
+            (device_key, week_start),
+        )
+        used = c.fetchone()
+        if used and int(used[0]) >= free_limit:
+            conn.rollback()
+            return None
+        c.execute(
+            _sql("""INSERT INTO device_week_usage (device_key, week_start, count)
+                     VALUES (?, ?, 1)
+                     ON CONFLICT (device_key, week_start)
+                     DO UPDATE SET count = device_week_usage.count + 1"""),
+            (device_key, week_start),
+        )
+        conn.commit()
+        return "free"
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def unlock_device(device_key, days=7, allowance=3, source="payment"):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        unlocked_until = (datetime.now() + timedelta(days=days)).isoformat()
+        c.execute(
+            _sql("""INSERT INTO device_unlocks
+                     (device_key, unlocked_until, allowance, used, source)
+                     VALUES (?, ?, ?, 0, ?)
+                     ON CONFLICT (device_key) DO UPDATE SET
+                         unlocked_until = excluded.unlocked_until,
+                         allowance = excluded.allowance,
+                         used = 0,
+                         source = excluded.source"""),
+            (device_key, unlocked_until, allowance, source),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_or_create_device_referral(device_key):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        c.execute(_sql("SELECT referral_code FROM device_referrals WHERE device_key = ?"), (device_key,))
+        row = c.fetchone()
+        if row:
+            return row[0]
+        referral_code = "REF" + uuid.uuid4().hex[:12].upper()
+        c.execute(
+            _sql("INSERT INTO device_referrals (referral_code, device_key) VALUES (?, ?)"),
+            (referral_code, device_key),
+        )
+        conn.commit()
+        return referral_code
+    finally:
+        conn.close()
+
+
+def claim_device_referral(referral_code, referred_device, days=7, allowance=3):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        if not USING_POSTGRES:
+            c.execute("BEGIN IMMEDIATE")
+        c.execute(
+            _sql("SELECT device_key FROM device_referrals WHERE referral_code = ?"),
+            (referral_code,),
+        )
+        row = c.fetchone()
+        if not row or row[0] == referred_device:
+            conn.rollback()
+            return False
+        owner_device = row[0]
+        c.execute(
+            _sql("SELECT 1 FROM device_referral_claims WHERE referral_code = ? AND referred_device = ?"),
+            (referral_code, referred_device),
+        )
+        if c.fetchone():
+            conn.rollback()
+            return False
+        now = datetime.now().isoformat()
+        unlocked_until = (datetime.now() + timedelta(days=days)).isoformat()
+        c.execute(
+            _sql("""INSERT INTO device_referral_claims
+                     (referral_code, referred_device, claimed_at) VALUES (?, ?, ?)"""),
+            (referral_code, referred_device, now),
+        )
+        c.execute(
+            _sql("""INSERT INTO device_unlocks
+                     (device_key, unlocked_until, allowance, used, source)
+                     VALUES (?, ?, ?, 0, 'share')
+                     ON CONFLICT (device_key) DO UPDATE SET
+                         unlocked_until = excluded.unlocked_until,
+                         allowance = excluded.allowance,
+                         used = 0,
+                         source = excluded.source"""),
+            (owner_device, unlocked_until, allowance),
+        )
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def get_ip_unlock_until(ip):
     conn = _connect()
     try:
@@ -204,7 +413,33 @@ def get_pending_payment_by_ip(ip):
         conn.close()
 
 
-def create_payment_order(ip, amount, payment_url, expires_hours=24, order_id=None):
+def get_pending_payment_by_device(device_key):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        now = datetime.now().isoformat()
+        c.execute(_sql("""SELECT order_id, amount, status, created_at, paid_at, expires_at, payment_url
+                         FROM payment_orders
+                         WHERE device_key = ? AND status = 'pending' AND expires_at > ?
+                         ORDER BY created_at DESC LIMIT 1"""),
+                  (device_key, now))
+        row = c.fetchone()
+        if not row:
+            return None
+        return {
+            "order_id": row[0],
+            "amount": row[1],
+            "status": row[2],
+            "created_at": row[3],
+            "paid_at": row[4],
+            "expires_at": row[5],
+            "payment_url": row[6],
+        }
+    finally:
+        conn.close()
+
+
+def create_payment_order(ip, amount, payment_url, expires_hours=24, order_id=None, device_key=None):
     conn = _connect()
     try:
         c = conn.cursor()
@@ -213,9 +448,10 @@ def create_payment_order(ip, amount, payment_url, expires_hours=24, order_id=Non
         now = datetime.now().isoformat()
         expires_at = (datetime.now() + timedelta(hours=expires_hours)).isoformat()
         c.execute(
-            _sql("""INSERT INTO payment_orders (order_id, ip, amount, status, created_at, paid_at, expires_at, payment_url)
-                     VALUES (?, ?, ?, 'pending', ?, NULL, ?, ?)"""),
-            (order_id, ip, amount, now, expires_at, payment_url),
+            _sql("""INSERT INTO payment_orders
+                     (order_id, ip, device_key, amount, status, created_at, paid_at, expires_at, payment_url)
+                     VALUES (?, ?, ?, ?, 'pending', ?, NULL, ?, ?)"""),
+            (order_id, ip, device_key, amount, now, expires_at, payment_url),
         )
         conn.commit()
         return order_id
@@ -227,7 +463,7 @@ def get_payment_order(order_id):
     conn = _connect()
     try:
         c = conn.cursor()
-        c.execute(_sql("""SELECT order_id, ip, amount, status, created_at, paid_at, expires_at, payment_url
+        c.execute(_sql("""SELECT order_id, ip, device_key, amount, status, created_at, paid_at, expires_at, payment_url
                          FROM payment_orders
                          WHERE order_id = ?"""),
                   (order_id,))
@@ -237,12 +473,13 @@ def get_payment_order(order_id):
         return {
             "order_id": row[0],
             "ip": row[1],
-            "amount": row[2],
-            "status": row[3],
-            "created_at": row[4],
-            "paid_at": row[5],
-            "expires_at": row[6],
-            "payment_url": row[7],
+            "device_key": row[2],
+            "amount": row[3],
+            "status": row[4],
+            "created_at": row[5],
+            "paid_at": row[6],
+            "expires_at": row[7],
+            "payment_url": row[8],
         }
     finally:
         conn.close()
@@ -264,7 +501,44 @@ def set_payment_paid(order_id):
         conn.close()
 
 
-def confirm_payment(order_id, transaction_id, received_amount, unlock_days=7):
+def attach_paid_order_to_device(order_id, device_key, days=7, allowance=3):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        if not USING_POSTGRES:
+            c.execute("BEGIN IMMEDIATE")
+        c.execute(
+            _sql("""UPDATE payment_orders SET device_key = ?
+                     WHERE order_id = ? AND status = 'paid' AND device_key IS NULL"""),
+            (device_key, order_id),
+        )
+        c.execute(_sql("SELECT device_key FROM payment_orders WHERE order_id = ?"), (order_id,))
+        row = c.fetchone()
+        if not row or row[0] != device_key:
+            conn.rollback()
+            return False
+        unlocked_until = (datetime.now() + timedelta(days=days)).isoformat()
+        c.execute(
+            _sql("""INSERT INTO device_unlocks
+                     (device_key, unlocked_until, allowance, used, source)
+                     VALUES (?, ?, ?, 0, 'payment')
+                     ON CONFLICT (device_key) DO UPDATE SET
+                         unlocked_until = excluded.unlocked_until,
+                         allowance = excluded.allowance,
+                         used = 0,
+                         source = excluded.source"""),
+            (device_key, unlocked_until, allowance),
+        )
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def confirm_payment(order_id, transaction_id, received_amount, unlock_days=7, unlock_uses=3):
     """Atomically record a SePay transaction, pay the order and unlock its IP."""
     conn = _connect()
     try:
@@ -272,7 +546,7 @@ def confirm_payment(order_id, transaction_id, received_amount, unlock_days=7):
         if not USING_POSTGRES:
             c.execute("BEGIN IMMEDIATE")
 
-        select_order = "SELECT ip, amount, status, expires_at FROM payment_orders WHERE order_id = ?"
+        select_order = "SELECT ip, device_key, amount, status, expires_at FROM payment_orders WHERE order_id = ?"
         if USING_POSTGRES:
             select_order += " FOR UPDATE"
         c.execute(_sql(select_order), (order_id,))
@@ -281,7 +555,7 @@ def confirm_payment(order_id, transaction_id, received_amount, unlock_days=7):
             conn.rollback()
             return "not_found"
 
-        ip, expected_amount, status, expires_at = row
+        ip, device_key, expected_amount, status, expires_at = row
         if status == "paid":
             conn.rollback()
             return "already_paid"
@@ -318,6 +592,18 @@ def confirm_payment(order_id, transaction_id, received_amount, unlock_days=7):
                      ON CONFLICT (ip) DO UPDATE SET unlocked_until = excluded.unlocked_until"""),
             (ip, unlocked_until),
         )
+        if device_key:
+            c.execute(
+                _sql("""INSERT INTO device_unlocks
+                         (device_key, unlocked_until, allowance, used, source)
+                         VALUES (?, ?, ?, 0, 'payment')
+                         ON CONFLICT (device_key) DO UPDATE SET
+                             unlocked_until = excluded.unlocked_until,
+                             allowance = excluded.allowance,
+                             used = 0,
+                             source = excluded.source"""),
+                (device_key, unlocked_until, unlock_uses),
+            )
         conn.commit()
         return "paid"
     except Exception:

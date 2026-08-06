@@ -1,4 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
+    async function createDeviceFingerprint() {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.textBaseline = 'top';
+            context.font = '16px Arial';
+            context.fillStyle = '#f60';
+            context.fillRect(20, 1, 62, 20);
+            context.fillStyle = '#069';
+            context.fillText('xoan-device-check', 2, 15);
+        }
+        const sides = [screen.width, screen.height].sort((a, b) => a - b);
+        const signals = [
+            navigator.userAgent,
+            navigator.platform,
+            navigator.language,
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+            sides.join('x'),
+            screen.colorDepth,
+            navigator.hardwareConcurrency || 0,
+            navigator.deviceMemory || 0,
+            navigator.maxTouchPoints || 0,
+            canvas.toDataURL()
+        ].join('|');
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signals));
+        return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    const deviceIdPromise = createDeviceFingerprint();
     // Parallax effect on mouse move for the hero section
     const heroVisual = document.querySelector('.hero-visual');
     const parallaxElements = document.querySelectorAll('.parallax');
@@ -51,8 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentOrderId = document.getElementById('payment-order-id');
     const paymentAccount = document.getElementById('payment-account');
     const paymentAmount = document.getElementById('payment-amount');
+    const shareUnlockButton = document.getElementById('share-unlock-button');
 
-    const referrerId = new URLSearchParams(window.location.search).get('ref');
+    const referrerCode = new URLSearchParams(window.location.search).get('ref');
     let currentUid = null;
     let textInterval = null;
     let paymentPollTimer = null;
@@ -109,21 +139,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function startPaymentPolling(orderId) {
+    function startPaymentPolling(orderId, deviceId) {
         stopPaymentPolling();
         let checking = false;
         paymentPollTimer = setInterval(async () => {
             if (checking) return;
             checking = true;
             try {
-                const response = await fetchApi(`/api/payment-status?order_id=${encodeURIComponent(orderId)}`, {
+                const response = await fetchApi(`/api/payment-status?order_id=${encodeURIComponent(orderId)}&device_id=${encodeURIComponent(deviceId)}`, {
                     method: 'GET',
                     cache: 'no-store'
                 });
                 const status = await response.json();
-                if (response.ok && status.paid) {
+                if (response.ok && (status.paid || status.unlocked)) {
                     stopPaymentPolling();
-                    paymentInstruction.textContent = 'Thanh toán thành công! Giới hạn đã được mở lại. Hệ thống đang tiếp tục kích hoạt...';
+                    paymentInstruction.textContent = `Mở khóa thành công! Bạn có ${status.remaining_uses || 3} lượt trong 7 ngày. Hệ thống đang tiếp tục kích hoạt...`;
                     paymentInstruction.style.color = '#15803d';
                     paymentInstruction.style.fontWeight = '700';
                     setTimeout(() => btnActivate.click(), 2000);
@@ -190,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnActivate) {
         btnActivate.addEventListener('click', async () => {
             if (!currentUid) return;
+            const deviceId = await deviceIdPromise;
             
             showStep(stepLoading);
             
@@ -211,7 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetchApi('/api/activate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid: currentUid, referrer_id: referrerId })
+                    body: JSON.stringify({
+                        uid: currentUid,
+                        device_id: deviceId,
+                        referrer_code: referrerCode
+                    })
                 });
 
                 const data = await response.json();
@@ -250,7 +285,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (paymentAccount) paymentAccount.textContent = `${data.bank_code} - ${data.account_no}${data.account_name ? ` - ${data.account_name}` : ''}`;
                     if (paymentAmount) paymentAmount.textContent = `${Number(data.amount || 0).toLocaleString('vi-VN')}đ`;
                     paymentInstruction.textContent = 'Đang chờ ngân hàng xác nhận. Vui lòng giữ nguyên số tiền và nội dung chuyển khoản.';
-                    startPaymentPolling(data.order_id);
+                    paymentInstruction.style.color = '#5b4a2f';
+                    paymentInstruction.style.fontWeight = '400';
+                    if (shareUnlockButton && data.referral_code) {
+                        const shareUrl = `${window.location.origin}${window.location.pathname}?ref=${encodeURIComponent(data.referral_code)}`;
+                        shareUnlockButton.style.display = 'inline-flex';
+                        shareUnlockButton.onclick = async () => {
+                            const shareData = {
+                                title: 'Dùng thử Xoăn Locket',
+                                text: 'Mở link và kích hoạt một lần để cả hai nhận thêm lượt.',
+                                url: shareUrl
+                            };
+                            try {
+                                if (navigator.share) {
+                                    await navigator.share(shareData);
+                                } else {
+                                    await navigator.clipboard.writeText(shareUrl);
+                                    paymentInstruction.textContent = 'Đã sao chép link. Khi một thiết bị khác kích hoạt thành công qua link, bạn sẽ được mở 3 lượt/7 ngày.';
+                                }
+                            } catch (error) {
+                                // User cancelled the native share sheet.
+                            }
+                        };
+                    }
+                    startPaymentPolling(data.order_id, deviceId);
                     showStep(stepInput);
                     errorText.style.display = 'none';
                 } else {

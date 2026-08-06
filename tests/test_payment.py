@@ -74,3 +74,94 @@ def test_database_confirms_only_exact_amount_once(tmp_path):
     finally:
         db.DB_NAME = old_name
         db.USING_POSTGRES = old_postgres
+
+
+def test_device_free_then_three_unlocked_uses(tmp_path):
+    from app import database as db
+
+    old_name = db.DB_NAME
+    old_postgres = db.USING_POSTGRES
+    device = "a" * 64
+    try:
+        db.DB_NAME = str(tmp_path / "device-limits.db")
+        db.USING_POSTGRES = False
+        db.init_db()
+
+        assert db.get_device_access(device, 1)["remaining"] == 1
+        assert db.record_device_activation(device, 1) == "free"
+        assert not db.get_device_access(device, 1)["allowed"]
+
+        db.unlock_device(device, days=7, allowance=3, source="payment")
+        assert db.get_device_access(device, 1)["remaining"] == 3
+        assert [db.record_device_activation(device, 1) for _ in range(3)] == [
+            "unlocked", "unlocked", "unlocked"
+        ]
+        assert not db.get_device_access(device, 1)["allowed"]
+    finally:
+        db.DB_NAME = old_name
+        db.USING_POSTGRES = old_postgres
+
+
+def test_payment_and_referral_unlock_devices(tmp_path):
+    from app import database as db
+
+    old_name = db.DB_NAME
+    old_postgres = db.USING_POSTGRES
+    payer = "b" * 64
+    sharer = "c" * 64
+    referred = "d" * 64
+    try:
+        db.DB_NAME = str(tmp_path / "device-payment.db")
+        db.USING_POSTGRES = False
+        db.init_db()
+
+        order_id = "XOANABCDEF123456"
+        db.create_payment_order(
+            "203.0.113.1", 20000, "https://vietqr.app/img",
+            order_id=order_id, device_key=payer,
+        )
+        assert db.confirm_payment(order_id, "TX-DEVICE", 20000, 7, 3) == "paid"
+        assert db.get_device_access(payer, 1)["remaining"] == 3
+
+        code = db.get_or_create_device_referral(sharer)
+        assert db.claim_device_referral(code, referred, 7, 3)
+        assert db.get_device_access(sharer, 1)["remaining"] == 3
+        assert not db.claim_device_referral(code, referred, 7, 3)
+    finally:
+        db.DB_NAME = old_name
+        db.USING_POSTGRES = old_postgres
+
+
+def test_migrates_and_attaches_legacy_paid_order(tmp_path):
+    import sqlite3
+    from app import database as db
+
+    old_name = db.DB_NAME
+    old_postgres = db.USING_POSTGRES
+    database_path = tmp_path / "legacy.db"
+    connection = sqlite3.connect(database_path)
+    connection.execute("""CREATE TABLE payment_orders (
+        order_id TEXT PRIMARY KEY, ip TEXT, amount INTEGER, status TEXT,
+        created_at TEXT, paid_at TEXT, expires_at TEXT, payment_url TEXT
+    )""")
+    connection.execute(
+        "INSERT INTO payment_orders VALUES (?, ?, ?, 'paid', ?, ?, ?, ?)",
+        ("XOANFEDCBA654321", "203.0.113.9", 20000,
+         "2026-01-01T00:00:00", "2026-01-01T00:01:00",
+         "2026-01-02T00:00:00", "https://vietqr.app/img"),
+    )
+    connection.commit()
+    connection.close()
+
+    try:
+        db.DB_NAME = str(database_path)
+        db.USING_POSTGRES = False
+        db.init_db()
+        device = "e" * 64
+        assert db.get_payment_order("XOANFEDCBA654321")["device_key"] is None
+        assert db.attach_paid_order_to_device("XOANFEDCBA654321", device, 7, 3)
+        assert db.get_payment_order("XOANFEDCBA654321")["device_key"] == device
+        assert db.get_device_access(device, 1)["remaining"] == 3
+    finally:
+        db.DB_NAME = old_name
+        db.USING_POSTGRES = old_postgres

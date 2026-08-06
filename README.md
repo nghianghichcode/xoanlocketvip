@@ -18,6 +18,7 @@ SEPAY_API_TOKEN=API_TOKEN_TAO_TAI_SEPAY
 PAYMENT_ORDER_PREFIX=XOAN
 PAYMENT_UNLOCK_AMOUNT=20000
 PAYMENT_UNLOCK_DAYS=7
+PAYMENT_UNLOCK_USES=3
 WEEKLY_USAGE_LIMIT=1
 ```
 
@@ -32,6 +33,19 @@ Nên thêm Railway Postgres và liên kết nó với service để Railway tự
 server sẽ truy vấn giao dịch SePay theo đúng tài khoản, số tiền và mã đơn nếu
 webhook chưa cập nhật. Khi tìm thấy giao dịch, đơn được xác nhận và giới hạn được
 mở lại tự động.
+
+## Giới hạn theo thiết bị
+
+- Fingerprint phía trình duyệt được băm SHA-256 trước khi gửi; server không lưu
+  chuỗi thông tin phần cứng thô.
+- Mỗi fingerprint có 1 lượt miễn phí trong mỗi tuần.
+- Thanh toán hoặc một thiết bị khác kích hoạt thành công qua link giới thiệu sẽ
+  cấp 3 lượt trong 7 ngày. Chỉ lần kích hoạt thành công mới bị trừ lượt.
+- IP chỉ được giữ làm tín hiệu phụ/audit và để tương thích đơn cũ, không còn là
+  khóa chính tính lượt.
+- Chế độ ẩn danh thường vẫn tạo cùng fingerprint trên cùng máy, nhưng không có
+  API trình duyệt nào đảm bảo nhận diện phần cứng tuyệt đối; người dùng kỹ thuật
+  cao vẫn có thể giả mạo các thuộc tính trình duyệt.
 
 Nếu Railway vừa redeploy làm mất một đơn SQLite đang chờ nhưng trình duyệt vẫn
 giữ mã đơn, endpoint trạng thái có thể khôi phục đơn từ giao dịch SePay khớp
