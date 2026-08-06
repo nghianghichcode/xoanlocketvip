@@ -28,11 +28,7 @@ async def auto_renew_daemon():
     
     while True:
         try:
-            conn = db.sqlite3.connect(db.DB_NAME)
-            c = conn.cursor()
-            c.execute("SELECT DISTINCT uid FROM request_logs WHERE status = 'SUCCESS'")
-            uids = [row[0] for row in c.fetchall() if row[0]]
-            conn.close()
+            uids = db.get_successful_uids()
 
             total_users = len(uids)
             if total_users == 0:
