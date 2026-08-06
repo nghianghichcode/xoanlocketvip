@@ -8,8 +8,8 @@ import json
 from urllib.parse import urlparse
 from functools import partial
 from app import database as db
-from app.services import locket
-from app.config import TOKEN_SETS
+from app.services import locket, nextdns
+from app.config import TOKEN_SETS, NEXTDNS_KEY, NEXTDNS_INSTALL_URL
 from app.bot import run_bot
 
 logger = logging.getLogger(__name__)
@@ -150,7 +150,21 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                 success, msg = loop.run_until_complete(locket.inject_gold(uid, token_config))
                 
                 if success:
-                    self._send_json(200, {"success": True, "uid": uid})
+                    referrer_id = data.get('referrer_id')
+                    if referrer_id:
+                        try:
+                            referrer_id = int(referrer_id)
+                        except (TypeError, ValueError):
+                            referrer_id = None
+                        if referrer_id and referrer_id != uid:
+                            db.grant_referral_bonus(referrer_id)
+
+                    _, dns_url = loop.run_until_complete(
+                        nextdns.create_profile(NEXTDNS_KEY, None, install_url=NEXTDNS_INSTALL_URL)
+                    )
+                    final_dns_url = dns_url or NEXTDNS_INSTALL_URL
+
+                    self._send_json(200, {"success": True, "uid": uid, "dns_url": final_dns_url})
                 else:
                     self._send_json(400, {"success": False, "message": msg})
                     

@@ -37,6 +37,12 @@ def init_db():
                         count INTEGER,
                         PRIMARY KEY (user_id, date)
                     )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS referral_bonus_logs (
+                        user_id BIGINT,
+                        date TEXT,
+                        count INTEGER,
+                        PRIMARY KEY (user_id, date)
+                    )""")
         c.execute("""CREATE TABLE IF NOT EXISTS user_settings (
                         user_id BIGINT PRIMARY KEY,
                         language TEXT
@@ -86,8 +92,37 @@ def increment_usage(user_id):
         conn.close()
 
 
-def check_can_request(user_id, max_limit=5):
-    return get_user_usage(user_id) < max_limit
+def get_referral_bonus(user_id):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        c.execute(_sql("SELECT count FROM referral_bonus_logs WHERE user_id = ? AND date = ?"), (user_id, today))
+        result = c.fetchone()
+        return result[0] if result else 0
+    finally:
+        conn.close()
+
+
+def grant_referral_bonus(user_id, amount=1):
+    conn = _connect()
+    try:
+        c = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        c.execute(
+            _sql("""INSERT INTO referral_bonus_logs (user_id, date, count)
+                     VALUES (?, ?, ?)
+                     ON CONFLICT (user_id, date)
+                     DO UPDATE SET count = referral_bonus_logs.count + excluded.count"""),
+            (user_id, today, amount),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def check_can_request(user_id, max_limit=2):
+    return get_user_usage(user_id) < max_limit + get_referral_bonus(user_id)
 
 
 def set_lang(user_id, lang):

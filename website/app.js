@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCancel = document.getElementById('btn-cancel');
     const btnReset = document.getElementById('btn-reset');
 
+    const referrerId = new URLSearchParams(window.location.search).get('ref');
     let currentUid = null;
     let textInterval = null;
 
@@ -167,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetchApi('/api/activate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid: currentUid })
+                    body: JSON.stringify({ uid: currentUid, referrer_id: referrerId })
                 });
 
                 const data = await response.json();
@@ -175,6 +176,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok && data.success) {
                     successUsername.textContent = confirmUsername.textContent;
+                    const dnsLink = document.getElementById('dns-link');
+                    if (dnsLink) {
+                        const finalUrl = data.dns_url || 'https://tinyurl.com/45z362ae';
+                        dnsLink.href = finalUrl;
+                        dnsLink.setAttribute('data-url', finalUrl);
+                        dnsLink.textContent = 'Tải Cấu hình DNS';
+                    }
                     showStep(stepSuccess);
                 } else {
                     showError(data.message || "Lỗi hệ thống. Vui lòng thử lại!");
