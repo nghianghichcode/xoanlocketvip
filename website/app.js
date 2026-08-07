@@ -526,6 +526,121 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 6. Section-wide motion system
+    const effectSections = document.querySelectorAll(
+        '.activation-section, .features-section, .steps-section-wrap, .tutorial-section, .stats-section, .faq-section'
+    );
+
+    effectSections.forEach((section, sectionIndex) => {
+        section.classList.add('fx-section');
+        section.style.setProperty('--section-index', sectionIndex);
+
+        const atmosphere = document.createElement('div');
+        atmosphere.className = 'section-atmosphere';
+        atmosphere.setAttribute('aria-hidden', 'true');
+        atmosphere.innerHTML = '<span class="section-orbit orbit-a"></span><span class="section-orbit orbit-b"></span><span class="section-spark spark-a"></span><span class="section-spark spark-b"></span><span class="section-spark spark-c"></span>';
+        section.prepend(atmosphere);
+    });
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            entry.target.classList.toggle('is-in-view', entry.isIntersecting);
+        });
+    }, { threshold: 0.12, rootMargin: '-5% 0px -10% 0px' });
+    effectSections.forEach(section => sectionObserver.observe(section));
+
+    let sectionMotionFrame = 0;
+    const updateSectionMotion = () => {
+        sectionMotionFrame = 0;
+        const viewportHeight = window.innerHeight || 1;
+        effectSections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const progress = Math.min(1, Math.max(0, (viewportHeight - rect.top) / (viewportHeight + rect.height)));
+            section.style.setProperty('--section-progress', progress.toFixed(3));
+        });
+    };
+    const queueSectionMotion = () => {
+        if (sectionMotionFrame || prefersReducedMotion) return;
+        sectionMotionFrame = requestAnimationFrame(updateSectionMotion);
+    };
+    window.addEventListener('scroll', queueSectionMotion, { passive: true });
+    window.addEventListener('resize', queueSectionMotion);
+    updateSectionMotion();
+
+    // Depth tilt for cards, using CSS variables so reveal states stay intact.
+    const tiltCards = document.querySelectorAll(
+        '.activation-widget, .bento-card, .step-card, .tutorial-card, .stat-card'
+    );
+    tiltCards.forEach(card => {
+        card.classList.add('fx-tilt');
+        if (!isDesktop || prefersReducedMotion) return;
+
+        card.addEventListener('mousemove', (event) => {
+            const rect = card.getBoundingClientRect();
+            const x = (event.clientX - rect.left) / rect.width - 0.5;
+            const y = (event.clientY - rect.top) / rect.height - 0.5;
+            card.style.setProperty('--tilt-x', `${(-y * 4).toFixed(2)}deg`);
+            card.style.setProperty('--tilt-y', `${(x * 5).toFixed(2)}deg`);
+            card.style.setProperty('--lift', '-8px');
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.setProperty('--tilt-x', '0deg');
+            card.style.setProperty('--tilt-y', '0deg');
+            card.style.setProperty('--lift', '0px');
+        });
+    });
+
+    // Keep navigation synchronized with the section currently in view.
+    const navLinks = document.querySelectorAll('.nav-links a[href^="#"]');
+    const navTargets = Array.from(navLinks)
+        .map(link => ({ link, target: document.querySelector(link.getAttribute('href')) }))
+        .filter(item => item.target);
+    const navObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            navLinks.forEach(link => link.classList.remove('active'));
+            const current = navTargets.find(item => item.target === entry.target);
+            if (current) current.link.classList.add('active');
+        });
+    }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+    navTargets.forEach(item => navObserver.observe(item.target));
+
+    // Pause tutorial media off-screen so the richer page stays lightweight.
+    const tutorialVideos = document.querySelectorAll('.tutorial-img');
+    const videoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const card = entry.target.closest('.tutorial-card');
+            if (entry.isIntersecting) {
+                entry.target.play().catch(() => {});
+                card?.classList.add('video-active');
+            } else {
+                entry.target.pause();
+                card?.classList.remove('video-active');
+            }
+        });
+    }, { threshold: 0.35 });
+    tutorialVideos.forEach(video => videoObserver.observe(video));
+
+    // Accessible state for the animated FAQ panels.
+    faqItems.forEach((item, index) => {
+        const question = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+        const answerId = `faq-answer-${index + 1}`;
+        answer.id = answerId;
+        question.setAttribute('aria-controls', answerId);
+        question.setAttribute('aria-expanded', 'false');
+
+        question.addEventListener('click', () => {
+            faqItems.forEach(otherItem => {
+                otherItem.querySelector('.faq-question').setAttribute(
+                    'aria-expanded',
+                    otherItem.classList.contains('active') ? 'true' : 'false'
+                );
+            });
+        });
+    });
+
     // ============================================================
     // ELITE TIER EFFECTS - XOAN.LOCKET
     // ============================================================
