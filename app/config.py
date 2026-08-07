@@ -15,6 +15,7 @@ WEEKLY_USAGE_LIMIT = int(os.environ.get("WEEKLY_USAGE_LIMIT", "1"))
 PAYMENT_UNLOCK_AMOUNT = int(os.environ.get("PAYMENT_UNLOCK_AMOUNT", "20000"))
 PAYMENT_UNLOCK_DAYS = int(os.environ.get("PAYMENT_UNLOCK_DAYS", "7"))
 PAYMENT_UNLOCK_USES = int(os.environ.get("PAYMENT_UNLOCK_USES", "3"))
+SHARE_UNLOCK_USES = int(os.environ.get("SHARE_UNLOCK_USES", "1"))
 
 SEPAY_MERCHANT_ID = os.environ.get("SEPAY_MERCHANT_ID", "")
 SEPAY_SECRET_KEY = os.environ.get("SEPAY_SECRET_KEY", "")

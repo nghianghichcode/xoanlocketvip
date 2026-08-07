@@ -19,6 +19,7 @@ from app.config import (
     PAYMENT_UNLOCK_AMOUNT,
     PAYMENT_UNLOCK_DAYS,
     PAYMENT_UNLOCK_USES,
+    SHARE_UNLOCK_USES,
     SEPAY_WEBHOOK_SECRET,
     SEPAY_API_TOKEN,
     SEPAY_API_URL,
@@ -276,7 +277,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
             "unlocked": unlocked,
             "remaining_uses": device_access['remaining'],
             "message": (
-                "Đã mở khóa 3 lượt sử dụng trong 7 ngày."
+                f"Đã mở khóa {device_access['remaining']} lượt sử dụng trong 7 ngày."
                 if unlocked
                 else "Đang chờ SePay xác nhận giao dịch."
             ),
@@ -344,7 +345,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                     if valid_pending:
                         self._send_json(403, {
                             "success": False,
-                            "message": "Đã dùng lượt miễn phí. Hãy chia sẻ hoặc thanh toán để mở 3 lượt/7 ngày.",
+                            "message": "Đã dùng lượt miễn phí. Chia sẻ nhận 1 lượt hoặc thanh toán nhận 3 lượt/7 ngày.",
                             "payment_url": pending_payment['payment_url'],
                             "payment_qr_url": pending_payment['payment_url'],
                             "order_id": pending_payment['order_id'],
@@ -354,6 +355,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                             "bank_code": VIETQR_BANK_CODE,
                             "referral_code": referral_code,
                             "unlock_uses": PAYMENT_UNLOCK_USES,
+                            "share_unlock_uses": SHARE_UNLOCK_USES,
                         })
                     else:
                         order_id = payment.generate_order_id(PAYMENT_ORDER_PREFIX)
@@ -383,7 +385,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                         )
                         self._send_json(403, {
                             "success": False,
-                            "message": "Đã dùng lượt miễn phí. Hãy chia sẻ hoặc quét QR để mở 3 lượt/7 ngày.",
+                            "message": "Đã dùng lượt miễn phí. Chia sẻ nhận 1 lượt hoặc quét QR nhận 3 lượt/7 ngày.",
                             "payment_url": payment_url,
                             "payment_qr_url": payment_url,
                             "order_id": order_id,
@@ -393,6 +395,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                             "bank_code": VIETQR_BANK_CODE,
                             "referral_code": referral_code,
                             "unlock_uses": PAYMENT_UNLOCK_USES,
+                            "share_unlock_uses": SHARE_UNLOCK_USES,
                         })
                     return
 
@@ -411,7 +414,7 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
                             referrer_code,
                             device_key,
                             PAYMENT_UNLOCK_DAYS,
-                            PAYMENT_UNLOCK_USES,
+                            SHARE_UNLOCK_USES,
                         )
 
                     _, dns_url = loop.run_until_complete(

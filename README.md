@@ -19,6 +19,7 @@ PAYMENT_ORDER_PREFIX=XOAN
 PAYMENT_UNLOCK_AMOUNT=20000
 PAYMENT_UNLOCK_DAYS=7
 PAYMENT_UNLOCK_USES=3
+SHARE_UNLOCK_USES=1
 WEEKLY_USAGE_LIMIT=1
 ```
 
@@ -39,8 +40,8 @@ mở lại tự động.
 - Fingerprint phía trình duyệt được băm SHA-256 trước khi gửi; server không lưu
   chuỗi thông tin phần cứng thô.
 - Mỗi fingerprint có 1 lượt miễn phí trong mỗi tuần.
-- Thanh toán hoặc một thiết bị khác kích hoạt thành công qua link giới thiệu sẽ
-  cấp 3 lượt trong 7 ngày. Chỉ lần kích hoạt thành công mới bị trừ lượt.
+- Thanh toán cấp 3 lượt trong 7 ngày; một thiết bị khác kích hoạt thành công qua
+  link giới thiệu chỉ cấp 1 lượt. Chỉ lần kích hoạt thành công mới bị trừ lượt.
 - IP chỉ được giữ làm tín hiệu phụ/audit và để tương thích đơn cũ, không còn là
   khóa chính tính lượt.
 - Chế độ ẩn danh thường vẫn tạo cùng fingerprint trên cùng máy, nhưng không có

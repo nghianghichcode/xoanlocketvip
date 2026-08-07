@@ -124,9 +124,9 @@ def test_payment_and_referral_unlock_devices(tmp_path):
         assert db.get_device_access(payer, 1)["remaining"] == 3
 
         code = db.get_or_create_device_referral(sharer)
-        assert db.claim_device_referral(code, referred, 7, 3)
-        assert db.get_device_access(sharer, 1)["remaining"] == 3
-        assert not db.claim_device_referral(code, referred, 7, 3)
+        assert db.claim_device_referral(code, referred, 7, 1)
+        assert db.get_device_access(sharer, 1)["remaining"] == 1
+        assert not db.claim_device_referral(code, referred, 7, 1)
     finally:
         db.DB_NAME = old_name
         db.USING_POSTGRES = old_postgres

@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         shareUnlockButton.onclick = async () => {
                             const shareData = {
                                 title: 'Dùng thử Xoăn Locket',
-                                text: 'Mở link và kích hoạt một lần để cả hai nhận thêm lượt.',
+                                text: 'Mở link và kích hoạt một lần để người giới thiệu nhận 1 lượt.',
                                 url: shareUrl
                             };
                             try {
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     await navigator.share(shareData);
                                 } else {
                                     await navigator.clipboard.writeText(shareUrl);
-                                    paymentInstruction.textContent = 'Đã sao chép link. Khi một thiết bị khác kích hoạt thành công qua link, bạn sẽ được mở 3 lượt/7 ngày.';
+                                    paymentInstruction.textContent = 'Đã sao chép link. Khi một thiết bị khác kích hoạt thành công, bạn sẽ nhận 1 lượt.';
                                 }
                             } catch (error) {
                                 // User cancelled the native share sheet.
