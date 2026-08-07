@@ -5,34 +5,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xoăn Locket - Trải nghiệm Locket Premium</title>
-
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Kalam:wght@400;700&display=swap"
         rel="stylesheet">
-
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="images/locket_gold_icon_1786046031090.png">
-
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=22">
 </head>
 
 <body>
+    <!-- Scroll Progress -->
+    <div class="scroll-progress-bar"></div>
+
+    <!-- Aurora Background -->
+    <div class="aurora-bg"></div>
+
+    <!-- Ambient / Cursor FX -->
+    <div class="cursor-glow"></div>
     <div class="noise-overlay"></div>
+
+    <div class="hero-mesh" style="position:fixed;"></div>
+    <div class="particles-container">
+        <div class="particle p1"></div>
+        <div class="particle p2"></div>
+        <div class="particle p3"></div>
+        <div class="particle p4"></div>
+        <div class="particle p5"></div>
+        <div class="particle p6"></div>
+        <div class="particle p7"></div>
+        <div class="particle p8"></div>
+    </div>
+
+    <div class="ambient-glow orb-1"></div>
+    <div class="ambient-glow orb-2"></div>
 
     <!-- Header Navigation -->
     <nav class="navbar">
-        <div class="logo">
+        <a href="#" class="logo" style="text-decoration:none;">
             <div class="logo-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path
                         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
             </div>
-            <span class="logo-text shimmer-text">XOĂN.LOCKET</span>
-        </div>
+            <span class="logo-text vibrant-text glitch-wrap" data-text="XOĂN.LOCKET">XOĂN.LOCKET</span>
+        </a>
 
         <ul class="nav-links">
             <li><a href="#trai-nghiem">Trải nghiệm</a></li>
@@ -41,7 +61,7 @@
         </ul>
 
         <div class="nav-action">
-            <a href="#thu-ngay" class="btn btn-outline">Thử ngay <span>&rarr;</span></a>
+            <a href="#kich-hoat" class="btn btn-outline">Thử ngay <span>&rarr;</span></a>
         </div>
     </nav>
 
@@ -49,31 +69,36 @@
     <main class="hero">
         <!-- Left Content -->
         <div class="hero-content">
-            <div class="badge-status">
-                <span class="dot"></span> GOLD COMMUNITY PREVIEW
+            <div class="badge-status reveal-up">
+                <span class="dot"></span>
+                <span class="badge-text">GOLD COMMUNITY PREVIEW</span>
             </div>
 
-            <h1 class="hero-title">
-                Mỗi khoảnh<br>
-                khắc<br>
-                <span class="highlight">đều đang phát<br>sáng.</span>
+            <h1 class="hero-title reveal-up" style="transition-delay: 0.1s;">
+                <span class="stagger-line"><span class="stagger-word">Mỗi</span> <span
+                        class="stagger-word">khoảnh</span> <span class="stagger-word">khắc</span></span><br>
+                <span class="stagger-line"><span class="stagger-word">đều</span> <span
+                        class="stagger-word">đang</span></span><br>
+                <span class="stagger-line"><span class="highlight shimmer-text">phát sáng.</span></span>
             </h1>
 
-            <p class="hero-subtitle">
+            <p class="hero-subtitle reveal-up" style="transition-delay: 0.2s;">
                 Một trải nghiệm Gold giàu cảm xúc, nhanh và riêng tư — được thiết kế để bạn cảm nhận trước giao diện
                 premium.
             </p>
 
-            <div class="hero-actions">
-                <a href="#kich-hoat" class="btn btn-primary">Bắt đầu kích hoạt <span>&darr;</span></a>
+            <div class="hero-actions reveal-up" style="transition-delay: 0.3s;">
+                <a href="#kich-hoat" class="btn btn-primary premium-btn magnetic-btn">
+                    <span class="btn-text">Bắt đầu kích hoạt <span class="arrow">&darr;</span></span>
+                </a>
             </div>
 
-            <div class="trust-section">
+            <div class="trust-section reveal-up" style="transition-delay: 0.4s;">
                 <div class="avatar-group">
-                    <div class="avatar" style="background-color: #f7d2cf;">N</div>
-                    <div class="avatar" style="background-color: #d7d1f5;">M</div>
-                    <div class="avatar" style="background-color: #d1f5e8;">A</div>
-                    <div class="avatar" style="background-color: #000; color: #fff;">+</div>
+                    <div class="avatar" style="background-color: #3b2a1a; color: #f4c95d;">N</div>
+                    <div class="avatar" style="background-color: #1c2730; color: #a3c2cf;">M</div>
+                    <div class="avatar" style="background-color: #2b3321; color: #b7d19c;">A</div>
+                    <div class="avatar avatar-plus">+</div>
                 </div>
                 <div class="trust-text">
                     <strong>Không cần mật khẩu</strong>
@@ -84,14 +109,13 @@
 
         <!-- Right Content: Mockup -->
         <div class="hero-visual">
-            <div class="yellow-circle"></div>
-
-            <div class="handwriting">
+            <div class="handwriting parallax" data-speed="5">
                 made for<br>your people &nearr;
             </div>
 
             <!-- Phone Mockup -->
-            <div class="phone-mockup">
+            <div class="phone-mockup parallax" data-speed="10">
+                <div class="glass-reflection"></div>
                 <div class="dynamic-island"></div>
                 <div class="phone-screen">
                     <div class="app-header">
@@ -121,7 +145,7 @@
                 </div>
 
                 <!-- Floating Elements -->
-                <div class="float-card locket-card parallax" data-speed="20">
+                <div class="float-card locket-card parallax" data-speed="25">
                     <div class="f-avatar" style="background-color: #f5a623;">L</div>
                     <div class="f-text">
                         <span class="f-title">New locket from</span>
@@ -141,25 +165,24 @@
     </main>
 
     <!-- Marquee Banner -->
-    <div class="marquee-container">
-        <div class="marquee-content">
-            <!-- Repeated content for infinite scroll -->
-            <span>✦</span>
-            <span>RIÊNG TƯ THEO THIẾT KẾ</span>
-            <span>✦</span>
-            <span>KHÔNG MẶT KHẨU</span>
-            <span>✦</span>
-            <span>CHUYỂN ĐỘNG SIÊU MƯỢT</span>
-            <span>✦</span>
-            <span>GOLD MOOD ONLY</span>
-            <span>✦</span>
-            <span>RIÊNG TƯ THEO THIẾT KẾ</span>
-            <span>✦</span>
-            <span>KHÔNG MẶT KHẨU</span>
-            <span>✦</span>
-            <span>CHUYỂN ĐỘNG SIÊU MƯỢT</span>
-            <span>✦</span>
-            <span>GOLD MOOD ONLY</span>
+    <div class="marquee-section">
+        <div class="marquee-mask"></div>
+        <div class="marquee-container">
+            <div class="marquee-content">
+                <span><i class="marquee-star">✦</i> RIÊNG TƯ THEO THIẾT KẾ</span>
+                <span><i class="marquee-star">✦</i> KHÔNG MẬT KHẨU</span>
+                <span><i class="marquee-star">✦</i> CHUYỂN ĐỘNG SIÊU MƯỢT</span>
+                <span><i class="marquee-star">✦</i> GOLD MOOD ONLY</span>
+                <span><i class="marquee-star">✦</i> RIÊNG TƯ THEO THIẾT KẾ</span>
+                <span><i class="marquee-star">✦</i> KHÔNG MẬT KHẨU</span>
+                <span><i class="marquee-star">✦</i> CHUYỂN ĐỘNG SIÊU MƯỢT</span>
+                <span><i class="marquee-star">✦</i> GOLD MOOD ONLY</span>
+                <!-- Duplicate for seamless loop -->
+                <span><i class="marquee-star">✦</i> RIÊNG TƯ THEO THIẾT KẾ</span>
+                <span><i class="marquee-star">✦</i> KHÔNG MẬT KHẨU</span>
+                <span><i class="marquee-star">✦</i> CHUYỂN ĐỘNG SIÊU MƯỢT</span>
+                <span><i class="marquee-star">✦</i> GOLD MOOD ONLY</span>
+            </div>
         </div>
     </div>
 
@@ -171,79 +194,105 @@
         </div>
 
         <div class="activation-wrapper reveal-up" style="transition-delay: 0.1s;">
-            <div class="activation-widget">
+            <div class="activation-widget glass-panel dynamic-card">
+                <div class="glow-border"></div>
+                <div class="widget-spotlight"></div>
                 <!-- Step 1: Input -->
                 <div id="step-input" class="widget-step active">
                     <form id="activation-form">
-                        <input type="text" id="locket-username" placeholder="Nhập Username hoặc Link Locket..." required
-                            autocomplete="off">
-                        <button type="submit" class="btn btn-primary" id="btn-submit">Kiểm tra
-                            <span>&rarr;</span></button>
+                        <div class="input-group">
+                            <input type="text" id="locket-username" placeholder="Nhập Username hoặc Link Locket..."
+                                required autocomplete="off">
+                            <button type="submit" class="btn btn-primary premium-btn magnetic-btn" id="btn-submit">
+                                <span class="btn-text">Kiểm tra <span class="arrow">&rarr;</span></span>
+                            </button>
+                        </div>
                     </form>
-                    <p style="margin-top: 10px; font-size: 0.95rem; color: #6b7280;">
+                    <p class="widget-hint">
                         Mỗi thiết bị có 1 lượt miễn phí/tuần. Chia sẻ nhận 1 lượt; thanh toán nhận 3 lượt trong 7 ngày.
                     </p>
-                    <div id="payment-prompt" style="display:none; margin-top:12px; padding:14px; border:1px solid #f0c050; background:#fff8e6; border-radius:12px;">
-                        <p style="margin:0 0 8px 0; font-weight:700; color:#7a4b00;">Bạn đã dùng đủ 1 lần trong tuần.</p>
-                        <p style="margin:0 0 12px 0; color:#4a3b1f;">Quét QR và chuyển khoản đúng thông tin dưới đây để mở khoá ngay.</p>
-                        <div id="payment-qr" style="margin-bottom:12px;"></div>
-                        <div style="margin:0 0 12px;line-height:1.7;color:#4a3b1f;">
+                    <div id="payment-prompt" class="payment-prompt glass-panel-inner" style="display:none;">
+                        <p class="payment-title">Bạn đã dùng đủ 1 lần trong tuần.</p>
+                        <p class="payment-desc">Quét QR và chuyển khoản đúng thông tin dưới đây để mở khoá ngay.</p>
+                        <div id="payment-qr" class="qr-container"></div>
+                        <div class="payment-details">
                             <div>Số tiền: <strong id="payment-amount">...</strong></div>
-                            <div>Nội dung/Mã đơn: <strong id="payment-order-id" style="user-select:all;">...</strong></div>
+                            <div>Nội dung/Mã đơn: <strong id="payment-order-id" class="selectable-text">...</strong>
+                            </div>
                             <div>Tài khoản nhận: <strong id="payment-account">...</strong></div>
                         </div>
-                        <a href="#" id="payment-link" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Mở ảnh QR</a>
-                        <button type="button" id="share-unlock-button" class="btn btn-outline" style="display:none;margin-left:8px;">Chia sẻ để nhận 1 lượt</button>
-                        <p id="payment-instruction" style="margin:10px 0 0 0; font-size:0.9rem; color:#5b4a2f;">Chia sẻ thành công nhận 1 lượt; thanh toán nhận 3 lượt.</p>
+                        <div class="payment-actions">
+                            <a href="#" id="payment-link" class="btn btn-primary premium-btn magnetic-btn"
+                                target="_blank" rel="noopener noreferrer">
+                                <span class="btn-text">Mở ảnh QR</span>
+                            </a>
+                            <button type="button" id="share-unlock-button" class="btn btn-outline"
+                                style="display:none;">Chia sẻ để nhận 1 lượt</button>
+                        </div>
+                        <p id="payment-instruction" class="payment-instruction">Chia sẻ thành công nhận 1 lượt; thanh
+                            toán nhận 3 lượt.</p>
                     </div>
                     <p class="error-text" id="error-message">Không tìm thấy tài khoản. Vui lòng thử lại!</p>
                 </div>
 
                 <!-- Step 2: Loading -->
                 <div id="step-loading" class="widget-step">
-                    <div class="spinner"></div>
+                    <div class="premium-spinner"></div>
                     <p id="loading-text">Đang tìm nạp dữ liệu tài khoản...</p>
                 </div>
 
                 <!-- Step 3: Confirm -->
                 <div id="step-confirm" class="widget-step">
-                    <div class="confirm-header">
-                        <div class="confirm-icon">👤</div>
+                    <div class="step-content-centered">
+                        <div class="confirm-icon-wrap">
+                            <div class="confirm-icon">👤</div>
+                        </div>
                         <h3>Đã tìm thấy tài khoản!</h3>
-                    </div>
-                    <div class="confirm-body">
-                        <p>Tài khoản: <strong><span id="confirm-username">...</span></strong></p>
-                        <p>Trạng thái: <span id="confirm-status" class="status-badge">...</span></p>
+
+                        <div class="account-details glass-panel-inner">
+                            <p>Tài khoản: <strong><span id="confirm-username">...</span></strong></p>
+                            <p>Trạng thái: <span id="confirm-status" class="status-badge">...</span></p>
+                        </div>
+
                         <p class="confirm-question">Bạn có muốn cấp quyền Premium cho tài khoản này không?</p>
-                    </div>
-                    <div class="confirm-actions">
-                        <button type="button" class="btn btn-primary" id="btn-activate">Xác nhận Kích hoạt</button>
-                        <button type="button" class="btn btn-outline" id="btn-cancel">Hủy</button>
+
+                        <div class="confirm-actions">
+                            <button type="button" class="btn btn-outline" id="btn-cancel">Hủy</button>
+                            <button type="button" class="btn btn-primary premium-btn magnetic-btn" id="btn-activate">
+                                <span class="btn-text">Xác nhận Kích hoạt</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Step 4: Success -->
                 <div id="step-success" class="widget-step">
-                    <div class="success-header">
-                        <div class="success-icon">✓</div>
-                        <h3>Kích hoạt thành công!</h3>
-                    </div>
-                    <div class="success-body">
-                        <p>Tài khoản <strong><span id="success-username">...</span></strong> đã được cấp quyền Premium.
-                        </p>
-                        <div class="instruction-box">
-                            <strong>Hướng dẫn giữ Gold vĩnh viễn:</strong>
+                    <div class="step-content-centered">
+                        <div class="success-icon-wrap">
+                            <div class="success-icon">✓</div>
+                            <div class="success-glow"></div>
+                        </div>
+                        <h3 class="success-title">Kích hoạt thành công!</h3>
+
+                        <p class="success-msg">Tài khoản <strong class="gold-text"><span
+                                    id="success-username">...</span></strong> đã được cấp quyền Premium.</p>
+
+                        <div class="instruction-box glass-panel-inner">
+                            <strong class="instruction-title">Hướng dẫn giữ Gold vĩnh viễn:</strong>
                             <ol>
                                 <li>Tải cấu hình DNS bên dưới.</li>
-                                <li>Mở file và chọn <b>Cho phép</b> cài đặt.</li>
-                                <li>Vào Cài đặt > Cấu hình đã tải về > <b>Cài đặt</b>.</li>
+                                <li>Mở file và chọn <b class="white-text">Cho phép</b> cài đặt.</li>
+                                <li>Vào Cài đặt > Cấu hình đã tải về > <b class="white-text">Cài đặt</b>.</li>
                             </ol>
                         </div>
-                    </div>
-                    <div class="success-actions">
-                        <a href="https://tinyurl.com/45z362ae" class="btn btn-primary" id="dns-link" target="_blank" rel="noopener noreferrer">Tải Cấu
-                            hình DNS</a>
-                        <button type="button" class="btn btn-outline" id="btn-reset">Làm lại</button>
+
+                        <div class="success-actions">
+                            <button type="button" class="btn btn-outline" id="btn-reset">Làm lại</button>
+                            <a href="https://tinyurl.com/45z362ae" class="btn btn-primary premium-btn magnetic-btn"
+                                id="dns-link" target="_blank" rel="noopener noreferrer">
+                                <span class="btn-text">Tải Cấu hình DNS</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -258,50 +307,63 @@
         </div>
 
         <div class="bento-grid">
-            <div class="bento-card card-large reveal-up">
+            <div class="bento-card card-large reveal-up dynamic-card">
+                <div class="glow-border"></div>
+                <div class="card-spotlight"></div>
                 <div class="card-bg" style="background-image: url('images/locket_video_feature_1786046013567.png');">
                 </div>
                 <div class="card-overlay"></div>
                 <div class="card-content">
-                    <div style="display: flex; gap: 8px; margin-bottom: auto;">
-                        <span class="badge">Độc Quyền</span>
-                        <span class="badge badge-soon">Coming Soon</span>
+                    <div class="card-badges">
+                        <span class="badge badge-gold">Độc Quyền</span>
+                        <span class="badge badge-soon">
+                            <span class="moving-highlight"></span>
+                            Coming Soon
+                        </span>
                     </div>
                     <h3>Quay Video 15 Giây</h3>
                     <p>Chia sẻ khoảnh khắc sống động hơn với thời lượng x5 lần thông thường.</p>
                 </div>
             </div>
 
-            <div class="bento-card reveal-up" style="transition-delay: 0.1s;">
-                <div class="card-bg" style="background-image: url('images/locket_no_ads_1786046039236.png');"></div>
-                <div class="card-overlay"></div>
+            <div class="bento-card card-glass reveal-up dynamic-card" style="transition-delay: 0.1s;">
+                <div class="glow-border"></div>
+                <div class="card-spotlight"></div>
+                <div class="card-bg"
+                    style="background-image: url('images/locket_no_ads_1786046039236.png'); opacity: 0.4;"></div>
                 <div class="card-content">
-                    <div class="icon-box">✨</div>
+                    <div class="icon-box glass-icon">✨</div>
                     <h3>Sạch Bóng Quảng Cáo</h3>
                     <p>Trải nghiệm mượt mà, không bị gián đoạn.</p>
                 </div>
             </div>
 
-            <div class="bento-card reveal-up" style="transition-delay: 0.2s;">
-                <div class="card-bg" style="background-image: url('images/locket_gallery_feature_1786046003917.png');">
+            <div class="bento-card card-glass reveal-up dynamic-card" style="transition-delay: 0.2s;">
+                <div class="glow-border"></div>
+                <div class="card-spotlight"></div>
+                <div class="card-bg"
+                    style="background-image: url('images/locket_gallery_feature_1786046003917.png'); opacity: 0.4;">
                 </div>
-                <div class="card-overlay"></div>
                 <div class="card-content">
-                    <div class="icon-box">🖼️</div>
+                    <div class="icon-box glass-icon">🖼️</div>
                     <h3>Upload Thư Viện</h3>
                     <p>Gửi ảnh kỷ niệm nhanh chóng từ cuộn camera.</p>
                 </div>
             </div>
 
-            <div class="bento-card card-wide reveal-up">
+            <div class="bento-card card-wide card-glass reveal-up dynamic-card" style="transition-delay: 0.3s;">
+                <div class="glow-border"></div>
+                <div class="card-spotlight"></div>
                 <div class="card-content horizontal">
                     <div class="text-part">
                         <h3>Cá Nhân Hóa Giao Diện</h3>
                         <p>Đổi biểu tượng ứng dụng viền vàng và màu sắc theme theo cá tính của bạn.</p>
                     </div>
-                    <div class="visual-part">
+                    <div class="visual-part floating-icon-container">
+                        <div class="ambient-glow icon-glow"></div>
                         <img src="images/locket_gold_icon_1786046031090.png" class="gold-icon-preview"
                             alt="Gold App Icon">
+                        <div class="icon-reflection"></div>
                     </div>
                 </div>
             </div>
@@ -309,33 +371,117 @@
     </section>
 
     <!-- Steps Section -->
-    <section class="section steps-section" id="cach-hoat-dong">
+    <div class="steps-section-wrap">
+        <section class="section steps-inner" id="cach-hoat-dong">
+            <div class="section-header reveal-up">
+                <h2>Kích hoạt thần tốc</h2>
+                <p>Sở hữu Gold vĩnh viễn chỉ với 3 bước, tự động 100%.</p>
+            </div>
+
+            <div class="timeline-cards">
+                <div class="step-card glass-panel dynamic-card reveal-up">
+                    <div class="glow-border"></div>
+                    <div class="step-num-bg">01</div>
+                    <div class="step-icon">
+                        <div class="inner-dot"></div>
+                    </div>
+                    <div class="step-text">
+                        <h4>Nhập Tên Người Dùng</h4>
+                        <p>Hệ thống tự động tra cứu bằng Locket ID công khai, không cần Mật khẩu hay iCloud.</p>
+                    </div>
+                </div>
+
+                <div class="step-card glass-panel dynamic-card reveal-up" style="transition-delay: 0.15s;">
+                    <div class="glow-border"></div>
+                    <div class="step-num-bg">02</div>
+                    <div class="step-icon">
+                        <div class="inner-dot"></div>
+                    </div>
+                    <div class="step-text">
+                        <h4>Xử Lý Siêu Tốc</h4>
+                        <p>Thuật toán tự động cấp quyền VIP trực tiếp vào tài khoản chỉ trong 5 giây.</p>
+                    </div>
+                </div>
+
+                <div class="step-card glass-panel dynamic-card reveal-up" style="transition-delay: 0.3s;">
+                    <div class="glow-border"></div>
+                    <div class="step-num-bg">03</div>
+                    <div class="step-icon">
+                        <div class="inner-dot"></div>
+                    </div>
+                    <div class="step-text">
+                        <h4>Tận Hưởng Gold</h4>
+                        <p>Cài đặt cấu hình bảo vệ và sử dụng trọn bộ tính năng vĩnh viễn.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- DNS Tutorial Section -->
+    <section class="section tutorial-section" id="huong-dan-dns">
         <div class="section-header reveal-up">
-            <h2>Kích hoạt thần tốc</h2>
-            <p>Sở hữu Gold vĩnh viễn chỉ với 3 bước, tự động 100%.</p>
+            <h2>Hướng dẫn cài đặt</h2>
+            <p>Chỉ cần 2 bước đơn giản — xem video để làm theo đúng nhé.</p>
         </div>
 
-        <div class="timeline">
-            <div class="step-item reveal-up">
-                <div class="step-num">01</div>
-                <div class="step-text">
-                    <h4>Nhập Tên Người Dùng</h4>
-                    <p>Hệ thống tự động tra cứu bằng Locket ID công khai, không cần Mật khẩu hay iCloud.</p>
+        <div class="tutorial-grid">
+            <!-- Bước 1: Xóa DNS cũ -->
+            <div class="tutorial-card glass-panel dynamic-card conic-card reveal-up">
+                <div class="glow-border"></div>
+                <div class="tutorial-num vibrant-text">BƯỚC 1</div>
+                <div class="tutorial-image-container">
+                    <video class="tutorial-img" src="videos/xoa-dns.mp4" autoplay loop muted playsinline
+                        style="object-fit:cover; border-radius:12px;"></video>
+                    <div class="img-shine"></div>
+                </div>
+                <div class="tutorial-content">
+                    <h4>Xóa DNS Cũ</h4>
+                    <p>Mở <strong>Cài đặt &gt; Cài đặt chung &gt; Bấm vào DNS cần xoá</strong>
+                        Chọn <strong>và xoá</p>
                 </div>
             </div>
-            <div class="step-item reveal-up" style="transition-delay: 0.1s;">
-                <div class="step-num">02</div>
-                <div class="step-text">
-                    <h4>Xử Lý Siêu Tốc</h4>
-                    <p>Thuật toán tự động cấp quyền VIP trực tiếp vào tài khoản chỉ trong 5 giây.</p>
+
+            <!-- Bước 2: Cài Locket & DNS -->
+            <div class="tutorial-card glass-panel dynamic-card conic-card reveal-up" style="transition-delay: 0.2s;">
+                <div class="glow-border"></div>
+                <div class="tutorial-num vibrant-text">BƯỚC 2</div>
+                <div class="tutorial-image-container">
+                    <video class="tutorial-img" src="videos/cai-locket.mp4" autoplay loop muted playsinline
+                        style="object-fit:cover; border-radius:12px;"></video>
+                    <div class="img-shine"></div>
+                </div>
+                <div class="tutorial-content">
+                    <h4>Cài Locket & Kích Hoạt</h4>
+                    <p>Làm theo video để cài cấu hình DNS Gold. Sau khi xong, quay lại trang để <strong>kích hoạt tài
+                            khoản</strong> ngay.</p>
                 </div>
             </div>
-            <div class="step-item reveal-up" style="transition-delay: 0.2s;">
-                <div class="step-num">03</div>
-                <div class="step-text">
-                    <h4>Tận Hưởng Gold</h4>
-                    <p>Cài đặt cấu hình bảo vệ và sử dụng trọn bộ tính năng vĩnh viễn.</p>
-                </div>
+        </div>
+    </section>
+
+    <!-- Stats Counter Section -->
+    <section class="stats-section">
+        <div class="stats-row">
+            <div class="stat-card reveal-up">
+                <div class="stat-icon">🚀</div>
+                <span class="stat-num" data-target="15000" data-suffix="+">0</span>
+                <span class="stat-label">Lượt kích hoạt</span>
+            </div>
+            <div class="stat-card reveal-up" style="transition-delay:0.12s">
+                <div class="stat-icon">✅</div>
+                <span class="stat-num" data-target="99" data-suffix="%">0</span>
+                <span class="stat-label">Tỷ lệ thành công</span>
+            </div>
+            <div class="stat-card reveal-up" style="transition-delay:0.24s">
+                <div class="stat-icon">⚡</div>
+                <span class="stat-num" data-target="5" data-suffix="s">0</span>
+                <span class="stat-label">Giây kích hoạt</span>
+            </div>
+            <div class="stat-card reveal-up" style="transition-delay:0.36s">
+                <div class="stat-icon">🔒</div>
+                <span class="stat-num" data-target="100" data-suffix="%">0</span>
+                <span class="stat-label">Bảo mật an toàn</span>
             </div>
         </div>
     </section>
@@ -350,32 +496,48 @@
             <div class="faq-item">
                 <button class="faq-question">Có an toàn cho tài khoản không? <span class="icon">+</span></button>
                 <div class="faq-answer">
-                    <p>An toàn tuyệt đối 100%. Quá trình kích hoạt hoàn toàn ẩn danh, không cần cung cấp mật khẩu Locket
-                        hay Apple ID. Tài khoản của bạn được bảo mật hoàn toàn.</p>
+                    <div class="faq-answer-inner">
+                        <p>An toàn tuyệt đối 100%. Quá trình kích hoạt hoàn toàn ẩn danh, không cần cung cấp mật khẩu
+                            Locket hay Apple ID. Tài khoản của bạn được bảo mật hoàn toàn.</p>
+                    </div>
                 </div>
             </div>
             <div class="faq-item">
                 <button class="faq-question">Có hỗ trợ Android không? <span class="icon">+</span></button>
                 <div class="faq-answer">
-                    <p>Hệ thống hỗ trợ cả iOS và Android. Với iOS, bạn cài đặt cấu hình DNS. Với Android, bạn sẽ tải ứng
-                        dụng Locket Gold độc quyền từ hệ thống.</p>
+                    <div class="faq-answer-inner">
+                        <p>Hệ thống hỗ trợ cả iOS và Android. Với iOS, bạn cài đặt cấu hình DNS. Với Android, bạn sẽ tải
+                            ứng dụng Locket Gold độc quyền từ hệ thống.</p>
+                    </div>
                 </div>
             </div>
             <div class="faq-item">
                 <button class="faq-question">Đổi điện thoại có mất Gold không? <span class="icon">+</span></button>
                 <div class="faq-answer">
-                    <p>Không. Khi đổi thiết bị mới, bạn chỉ cần tải lại cấu hình hệ thống (miễn phí không giới hạn số
-                        lần) để tiếp tục duy trì trạng thái Gold.</p>
+                    <div class="faq-answer-inner">
+                        <p>Không. Khi đổi thiết bị mới, bạn chỉ cần tải lại cấu hình hệ thống (miễn phí không giới hạn
+                            số lần) để tiếp tục duy trì trạng thái Gold.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <hr class="footer-divider">
     <footer class="footer">
-        <div class="logo">
-            <span class="logo-text shimmer-text">XOĂN.LOCKET</span>
+        <div class="footer-inner">
+            <a href="#" class="logo" style="text-decoration:none;">
+                <div class="logo-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                </div>
+                <span class="logo-text vibrant-text glitch-wrap" data-text="XOĂN.LOCKET">XOĂN.LOCKET</span>
+            </a>
+            <p>&copy; 2026. Made with <span class="heart">❤️</span> by <span
+                    class="vibrant-text glow-text">xoăndev</span>. For educational purposes.</p>
         </div>
-        <p>&copy; 2026. Made with ❤️. For educational purposes.</p>
     </footer>
 
     <script src="app.js"></script>
