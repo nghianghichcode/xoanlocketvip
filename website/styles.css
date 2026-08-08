@@ -46,6 +46,11 @@ body {
     flex-direction: column;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'><polygon points='2,2 22,9 12,13 8,23' fill='%23F4C95D' stroke='%23000000' stroke-width='1.5'/></svg>") 2 2, auto;
+}
+
+a, button, input[type="submit"], .btn, .faq-question, .magnetic-btn, .avatar {
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'><polygon points='2,2 22,9 12,13 8,23' fill='%23ffffff' stroke='%23000000' stroke-width='1.5'/></svg>") 2 2, pointer !important;
 }
 
 a {
