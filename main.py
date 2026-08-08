@@ -8,6 +8,7 @@ import json
 import secrets
 import time
 import re
+import sys
 from urllib.parse import urlparse, parse_qs
 from app import database as db
 from app.services import locket, nextdns, payment
@@ -28,6 +29,10 @@ from app.config import (
     VIETQR_ACCOUNT_NAME,
     VIETQR_URL_TEMPLATE,
     PAYMENT_ORDER_PREFIX,
+    VIETQR_BANK_NAME,
+    SUPPORT_FACEBOOK_URL,
+    SUPPORT_TELEGRAM_URL,
+    DONATE_TRANSFER_CONTENT,
 )
 from app.bot import run_bot
 
@@ -240,6 +245,29 @@ class WebAPIHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
+        if parsed_path.path == '/api/support-config':
+            try:
+                donate_qr_url = payment.build_donate_vietqr_url(
+                    VIETQR_URL_TEMPLATE,
+                    VIETQR_ACCOUNT_NO,
+                    VIETQR_BANK_CODE,
+                    DONATE_TRANSFER_CONTENT,
+                    VIETQR_ACCOUNT_NAME,
+                )
+            except ValueError:
+                donate_qr_url = ""
+
+            self._send_json(200, {
+                "success": True,
+                "facebook_url": SUPPORT_FACEBOOK_URL,
+                "telegram_url": SUPPORT_TELEGRAM_URL,
+                "donate_qr_url": donate_qr_url,
+                "bank_name": VIETQR_BANK_NAME,
+                "account_name": VIETQR_ACCOUNT_NAME,
+                "transfer_content": DONATE_TRANSFER_CONTENT,
+            })
+            return
+
         if parsed_path.path != '/api/payment-status':
             return super().do_GET()
 
@@ -502,12 +530,46 @@ def start_web_server():
         print(f"[\033[92m+\033[0m] Web server (xoan.locket) running on port {port}")
         httpd.serve_forever()
 
+def env_flag(name, default=True):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def configure_console_encoding():
+    """Prevent Vietnamese log messages from crashing Windows terminals."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 if __name__ == "__main__":
+    configure_console_encoding()
+
     # Đẩy web server sang 1 luồng riêng biệt (Render yêu cầu bind PORT)
     threading.Thread(target=start_web_server, daemon=True).start()
 
-    # Đẩy daemon sang 1 luồng riêng biệt
-    threading.Thread(target=start_daemon, daemon=True).start()
-    
-    # Chạy bot Telegram ở luồng chính
-    run_bot()
+    if env_flag("RUN_RENEW_DAEMON", True):
+        threading.Thread(target=start_daemon, daemon=True).start()
+    else:
+        print("[i] Mass-Injector daemon is disabled.")
+
+    if env_flag("RUN_BOT", True):
+        try:
+            run_bot()
+        except Exception as exc:
+            logger.exception("Telegram bot failed to start: %s", exc)
+            print("[!] Telegram bot could not start; the website is still running.")
+    else:
+        print("[i] Telegram bot is disabled. Running website only.")
+
+    # Keep the main process alive when running in web-only mode or after a bot error.
+    try:
+        threading.Event().wait()
+    except KeyboardInterrupt:
+        print("\n[i] Server stopped.")

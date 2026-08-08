@@ -13,7 +13,7 @@
         rel="stylesheet">
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="images/locket_gold_icon_1786046031090.png">
-    <link rel="stylesheet" href="styles.css?v=23">
+    <link rel="stylesheet" href="styles.css?v=24">
 </head>
 
 <body>
@@ -58,6 +58,7 @@
             <li><a href="#trai-nghiem">Trải nghiệm</a></li>
             <li><a href="#cach-hoat-dong">Cách hoạt động</a></li>
             <li><a href="#rieng-tu">Riêng tư</a></li>
+            <li><a href="#ho-tro">Hỗ trợ</a></li>
         </ul>
 
         <div class="nav-action">
@@ -486,6 +487,100 @@
         </div>
     </section>
 
+    <!-- Support & Donate Section -->
+    <section class="section support-section" id="ho-tro">
+        <div class="section-header reveal-up">
+            <span class="section-kicker">KẾT NỐI CÙNG XOĂN</span>
+            <h2>Luôn ở đây khi bạn cần</h2>
+            <p>Gặp lỗi hay cần hướng dẫn? Nhắn cho Xoăn qua kênh bạn dùng thường xuyên nhất.</p>
+        </div>
+
+        <div class="support-grid">
+            <article class="support-card contact-card dynamic-card reveal-up">
+                <div class="glow-border"></div>
+                <div class="support-card-heading">
+                    <span class="support-card-index">01</span>
+                    <div>
+                        <span class="support-label">Hỗ trợ trực tiếp</span>
+                        <h3>Kết nối với Xoăn</h3>
+                    </div>
+                </div>
+                <p class="support-description">Theo dõi thông báo mới nhất hoặc nhắn tin để được hỗ trợ nhanh chóng.</p>
+
+                <div class="social-links">
+                    <a class="social-link social-facebook" data-social="facebook" href="#" target="_blank"
+                        rel="noopener noreferrer" aria-disabled="true">
+                        <span class="social-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" role="img">
+                                <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.435H7.078v-3.492h3.047V9.413c0-3.026 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.974h-1.513c-1.49 0-1.956.931-1.956 1.887v2.26h3.328l-.532 3.492h-2.796V24C19.612 23.094 24 18.1 24 12.073Z"/>
+                            </svg>
+                        </span>
+                        <span class="social-copy">
+                            <strong>Facebook</strong>
+                            <small data-social-status>Cập nhật & cộng đồng</small>
+                        </span>
+                        <span class="social-arrow">↗</span>
+                    </a>
+
+                    <a class="social-link social-telegram" data-social="telegram" href="#" target="_blank"
+                        rel="noopener noreferrer" aria-disabled="true">
+                        <span class="social-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" role="img">
+                                <path d="M23.91 3.79 20.3 20.82c-.27 1.2-.98 1.49-1.99.93l-5.5-4.08-2.65 2.57c-.29.3-.54.55-1.1.55l.39-5.65L19.65 5.9c.44-.4-.1-.62-.69-.22L6.36 13.67.94 11.96c-1.18-.37-1.2-1.19.25-1.76L22.4 1.97c.98-.37 1.84.22 1.51 1.82Z"/>
+                            </svg>
+                        </span>
+                        <span class="social-copy">
+                            <strong>Telegram</strong>
+                            <small data-social-status>Phản hồi nhanh</small>
+                        </span>
+                        <span class="social-arrow">↗</span>
+                    </a>
+                </div>
+            </article>
+
+            <article class="support-card donate-card dynamic-card reveal-up" style="transition-delay: 0.12s;">
+                <div class="glow-border"></div>
+                <div class="donate-copy">
+                    <div class="support-card-heading">
+                        <span class="support-card-index">02</span>
+                        <div>
+                            <span class="support-label">Một chút yêu thương</span>
+                            <h3>Ủng hộ dự án</h3>
+                        </div>
+                    </div>
+                    <p class="support-description">Mỗi đóng góp giúp Xoăn duy trì máy chủ, cải thiện tốc độ và tiếp tục cập nhật website miễn phí cho mọi người.</p>
+                    <div class="donate-caption">
+                        <span class="donate-heart" aria-hidden="true">♥</span>
+                        <div>
+                            <strong>Ủng hộ Xoăn để duy trì website</strong>
+                            <small>Quét mã bằng ứng dụng ngân hàng</small>
+                        </div>
+                    </div>
+                    <p class="donate-note">Bạn có thể nhập số tiền tùy tâm. Cảm ơn bạn đã đồng hành cùng Xoăn!</p>
+                </div>
+
+                <div class="donate-visual">
+                    <div class="qr-frame">
+                        <div class="qr-corners" aria-hidden="true"></div>
+                        <div class="qr-placeholder" id="donate-qr-placeholder">
+                            <span class="qr-placeholder-icon">⌁</span>
+                            <small>Đang tải mã QR</small>
+                        </div>
+                        <img id="donate-qr-image" class="donate-qr-image" alt="Mã QR ủng hộ Xoăn" loading="lazy">
+                    </div>
+                    <div class="donate-bank-info">
+                        <span class="live-dot"></span>
+                        <span id="donate-bank-label">QR chuyển khoản an toàn</span>
+                    </div>
+                    <div class="transfer-content">
+                        <small>Nội dung chuyển khoản</small>
+                        <strong id="donate-transfer-content">UNG HO XOAN</strong>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
     <!-- FAQ Section -->
     <section class="section faq-section" id="rieng-tu">
         <div class="section-header reveal-up">
@@ -540,7 +635,7 @@
         </div>
     </footer>
 
-    <script src="app.js?v=23"></script>
+    <script src="app.js?v=24"></script>
 </body>
 
 </html>

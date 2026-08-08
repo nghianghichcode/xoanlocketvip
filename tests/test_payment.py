@@ -1,6 +1,7 @@
 from urllib.parse import parse_qs, urlparse
 
 from app.services.payment import (
+    build_donate_vietqr_url,
     build_vietqr_url,
     extract_order_id,
     generate_order_id,
@@ -30,6 +31,20 @@ def test_vietqr_contains_amount_and_order_code():
     assert params["acc"] == ["0123456789"]
     assert params["amount"] == ["20000"]
     assert params["des"] == ["XOAN0123456789AB"]
+
+
+def test_donate_vietqr_allows_custom_amount():
+    url = build_donate_vietqr_url(
+        "https://vietqr.app/img",
+        "0123456789",
+        "970436",
+        "UNG HO XOAN",
+        "NGUYEN VAN A",
+    )
+    params = parse_qs(urlparse(url).query)
+    assert params["acc"] == ["0123456789"]
+    assert params["des"] == ["UNG HO XOAN"]
+    assert "amount" not in params
 
 
 def test_extract_order_from_official_sepay_fields():

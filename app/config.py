@@ -46,6 +46,13 @@ VIETQR_URL_TEMPLATE = os.environ.get(
 ).strip()
 PAYMENT_ORDER_PREFIX = os.environ.get("PAYMENT_ORDER_PREFIX", "XOAN").strip().upper()
 
+# Public support links shown on the website.
+SUPPORT_FACEBOOK_URL = os.environ.get("SUPPORT_FACEBOOK_URL", "").strip()
+SUPPORT_TELEGRAM_URL = os.environ.get("SUPPORT_TELEGRAM_URL", "").strip()
+DONATE_TRANSFER_CONTENT = os.environ.get(
+    "DONATE_TRANSFER_CONTENT", "UNG HO XOAN"
+).strip()
+
 # ============================================================
 
 TOKEN_SETS = [

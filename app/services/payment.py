@@ -38,6 +38,27 @@ def build_vietqr_url(base_url, account_no, bank_code, amount, order_id, account_
     return f"{base_url}{separator}{urlencode(params)}"
 
 
+def build_donate_vietqr_url(base_url, account_no, bank_code, description, account_name=""):
+    """Build a reusable VietQR image that lets supporters enter any amount."""
+    if not account_no or not bank_code:
+        raise ValueError("Missing VIETQR_ACCOUNT_NO or VIETQR_BANK_CODE/VIETQR_BANK_BIN")
+
+    params = {
+        "acc": account_no,
+        "bank": bank_code,
+        "des": (description or "UNG HO XOAN").strip(),
+        "template": "compact",
+        "showinfo": "true",
+        "fullacc": "true",
+    }
+    if account_name:
+        ascii_name = unicodedata.normalize("NFKD", account_name.replace("Đ", "D").replace("đ", "d"))
+        ascii_name = ascii_name.encode("ascii", "ignore").decode("ascii").upper()
+        params["holder"] = re.sub(r"[^A-Z0-9 ]", "", ascii_name)[:80]
+    separator = "&" if "?" in base_url else "?"
+    return f"{base_url}{separator}{urlencode(params)}"
+
+
 def extract_order_id(payload, prefix="XOAN"):
     normalized_prefix = normalize_order_prefix(prefix)
     pattern = rf"{re.escape(normalized_prefix)}[A-F0-9]{{12}}"

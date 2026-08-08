@@ -359,6 +359,70 @@ document.addEventListener('DOMContentLoaded', () => {
         revealObserver.observe(el);
     });
 
+    // --- Support & Donate data ---
+    const initSupportSection = async () => {
+        const socialLinks = {
+            facebook: document.querySelector('[data-social="facebook"]'),
+            telegram: document.querySelector('[data-social="telegram"]')
+        };
+        const qrImage = document.getElementById('donate-qr-image');
+        const qrPlaceholder = document.getElementById('donate-qr-placeholder');
+        const bankLabel = document.getElementById('donate-bank-label');
+        const transferContent = document.getElementById('donate-transfer-content');
+
+        if (!qrImage) return;
+
+        const isPublicUrl = (value) => {
+            try {
+                const url = new URL(value);
+                return url.protocol === 'https:' || url.protocol === 'http:';
+            } catch (_) {
+                return false;
+            }
+        };
+
+        try {
+            const response = await fetch('/api/support-config', {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error('Support config unavailable');
+            const data = await response.json();
+
+            Object.entries(socialLinks).forEach(([network, link]) => {
+                const url = data[network + '_url'];
+                if (!link || !isPublicUrl(url)) return;
+                link.href = url;
+                link.setAttribute('aria-disabled', 'false');
+            });
+
+            if (data.transfer_content && transferContent) {
+                transferContent.textContent = data.transfer_content;
+            }
+
+            const bankSummary = [data.bank_name, data.account_name].filter(Boolean).join(' · ');
+            if (bankSummary && bankLabel) bankLabel.textContent = bankSummary;
+
+            if (isPublicUrl(data.donate_qr_url)) {
+                qrImage.addEventListener('load', () => {
+                    qrImage.closest('.qr-frame')?.classList.add('is-ready');
+                }, { once: true });
+                qrImage.addEventListener('error', () => {
+                    if (qrPlaceholder) {
+                        qrPlaceholder.querySelector('small').textContent = 'Không thể tải mã QR';
+                    }
+                }, { once: true });
+                qrImage.src = data.donate_qr_url;
+            } else if (qrPlaceholder) {
+                qrPlaceholder.querySelector('small').textContent = 'Chưa cấu hình mã QR';
+            }
+        } catch (error) {
+            if (qrPlaceholder) {
+                qrPlaceholder.querySelector('small').textContent = 'Không thể tải mã QR';
+            }
+        }
+    };
+    initSupportSection();
+
     // --- FAQ Accordion ---
     const faqItems = document.querySelectorAll('.faq-item');
     
@@ -528,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. Section-wide motion system
     const effectSections = document.querySelectorAll(
-        '.activation-section, .features-section, .steps-section-wrap, .tutorial-section, .stats-section, .faq-section'
+        '.activation-section, .features-section, .steps-section-wrap, .tutorial-section, .stats-section, .support-section, .faq-section'
     );
 
     effectSections.forEach((section, sectionIndex) => {
@@ -569,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Depth tilt for cards, using CSS variables so reveal states stay intact.
     const tiltCards = document.querySelectorAll(
-        '.activation-widget, .bento-card, .step-card, .tutorial-card, .stat-card'
+        '.activation-widget, .bento-card, .step-card, .tutorial-card, .stat-card, .support-card'
     );
     tiltCards.forEach(card => {
         card.classList.add('fx-tilt');
