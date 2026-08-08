@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         paymentQr.appendChild(qrImage);
                     }
                     if (paymentOrderId) paymentOrderId.textContent = data.order_id;
-                    if (paymentAccount) paymentAccount.textContent = `${data.bank_code} - ${data.account_no}${data.account_name ? ` - ${data.account_name}` : ''}`;
+                    if (paymentAccount) paymentAccount.textContent = data.account_name || '';
                     if (paymentAmount) paymentAmount.textContent = `${Number(data.amount || 0).toLocaleString('vi-VN')}đ`;
                     paymentInstruction.textContent = 'Đang chờ ngân hàng xác nhận. Vui lòng giữ nguyên số tiền và nội dung chuyển khoản.';
                     paymentInstruction.style.color = '#5b4a2f';
