@@ -11,7 +11,7 @@ ADMIN_ID    = int(os.environ.get("ADMIN_ID", "8677771879"))
 NEXTDNS_KEY = os.environ.get("NEXTDNS_KEY", "")
 NEXTDNS_INSTALL_URL = os.environ.get("NEXTDNS_INSTALL_URL", "https://apple.nextdns.io/?profile={profile_id}")
 
-WEEKLY_USAGE_LIMIT = int(os.environ.get("WEEKLY_USAGE_LIMIT", "1"))
+WEEKLY_USAGE_LIMIT = int(os.environ.get("WEEKLY_USAGE_LIMIT", "3"))
 PAYMENT_UNLOCK_AMOUNT = int(os.environ.get("PAYMENT_UNLOCK_AMOUNT", "20000"))
 PAYMENT_UNLOCK_DAYS = int(os.environ.get("PAYMENT_UNLOCK_DAYS", "7"))
 PAYMENT_UNLOCK_USES = int(os.environ.get("PAYMENT_UNLOCK_USES", "3"))
