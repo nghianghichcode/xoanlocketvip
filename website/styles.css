@@ -46,11 +46,15 @@ body {
     flex-direction: column;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'><polygon points='2,2 22,9 12,13 8,23' fill='%23F4C95D' stroke='%23000000' stroke-width='1.5'/></svg>") 2 2, auto;
+    cursor: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyNicgaGVpZ2h0PScyNicgdmlld0JveD0nMCAwIDI2IDI2Jz48cG9seWdvbiBwb2ludHM9JzIsMiAyMiw5IDEyLDEzIDgsMjMnIGZpbGw9JyNGNEM5NUQnIHN0cm9rZT0nIzAwMDAwMCcgc3Ryb2tlLXdpZHRoPScxLjUnLz48L3N2Zz4=") 2 2, auto;
+}
+
+*, a, button, input[type="submit"], .btn, .faq-question, .magnetic-btn, .avatar {
+    cursor: inherit;
 }
 
 a, button, input[type="submit"], .btn, .faq-question, .magnetic-btn, .avatar {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'><polygon points='2,2 22,9 12,13 8,23' fill='%23ffffff' stroke='%23000000' stroke-width='1.5'/></svg>") 2 2, pointer !important;
+    cursor: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyNicgaGVpZ2h0PScyNicgdmlld0JveD0nMCAwIDI2IDI2Jz48cG9seWdvbiBwb2ludHM9JzIsMiAyMiw5IDEyLDEzIDgsMjMnIGZpbGw9JyNmZmZmZmYnIHN0cm9rZT0nIzAwMDAwMCcgc3Ryb2tlLXdpZHRoPScxLjUnLz48L3N2Zz4=") 2 2, pointer !important;
 }
 
 a {
